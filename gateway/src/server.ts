@@ -17,3 +17,11 @@ app.listen({ port: config.port, host: '0.0.0.0' })
     app.log.error(err);
     process.exit(1);
   });
+
+app.listen({port:config.port, host:'0.0.0.0'})
+    .then(()=> app.log.info(`Gateway listening on ${config.port} -> ${config.downstreamUrl}`))
+    .catch((err)=>{
+        app.log.error(err);
+        process.exit(1);
+    });
+
