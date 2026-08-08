@@ -1,13 +1,46 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Service {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  baseUrl   String
+  healthy   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  routes    Route[]
+}
+
+model Route {
+  id        String   @id @default(uuid())
+  path      String
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  rateLimit Int?
+  createdAt DateTime @default(now())
+
+  @@unique([path])
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  apiKeys   ApiKey[]
+}
+
+model ApiKey {
+  id        String    @id @default(uuid())
+  key       String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
 }
