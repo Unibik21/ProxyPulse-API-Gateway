@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@prisma/client": "^7.9.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@prisma/client": "^6.19.3",
     "next": "16.3.0",
