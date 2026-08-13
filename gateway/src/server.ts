@@ -16,7 +16,6 @@ app.all('/*', async (req, reply) => {
 
 });
 
-// this is my import {  } from "module";
 app.listen({ port: config.port, host: '0.0.0.0' })
   .then(() => app.log.info(`Gateway listening on ${config.port}, control plane running on ${config.downstreamUrl}`))
   .catch((err) => { app.log.error(err); process.exit(1); });
