@@ -1,21 +1,18 @@
 {
-  "name": "api-gateway-project",
+  "name": "api-gateway",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "homepage": "https://github.com/Unibik21/api-gateway#readme",
+  "bugs": {
+    "url": "https://github.com/Unibik21/api-gateway/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Unibik21/Gateway.git"
+    "url": "git+https://github.com/Unibik21/api-gateway.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
-  "bugs": {
-    "url": "https://github.com/Unibik21/Gateway/issues"
-  },
-  "homepage": "https://github.com/Unibik21/Gateway#readme"
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
 }
