@@ -5,10 +5,10 @@ import { config } from './config.js';
 
 const app = Fastify({ logger: true });
 
-app.all('/*', async(req, reply) -> {
+app.all('/*', async (req, reply) => {
   const route = getRoute(req.url.split('?')[0]);
 
-  if(!route) {
+  if (!route) {
     return reply.status(400).send({ error: 'Nor route configured for this path' });
   }
 
@@ -18,16 +18,5 @@ app.all('/*', async(req, reply) -> {
 
 // this is my import {  } from "module";
 app.listen({ port: config.port, host: '0.0.0.0' })
-  .then(() => app.log.info(`Gateway listening on ${config.port} -> ${config.downstreamUrl}`))
-  .catch((err) => {
-    app.log.error(err);
-    process.exit(1);
-  });
-
-app.listen({ port: config.port, host: '0.0.0.0' })
-  .then(() => app.log.info(`Gateway listening on ${config.port} -> ${config.downstreamUrl}`))
-  .catch((err) => {
-    app.log.error(err);
-    process.exit(1);
-  });
-
+  .then(() => app.log.info(`Gateway listening on ${config.port}, control plane running on ${config.downstreamUrl}`))
+  .catch((err) => { app.log.error(err); process.exit(1); });
