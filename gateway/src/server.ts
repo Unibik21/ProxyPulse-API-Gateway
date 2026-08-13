@@ -10,7 +10,6 @@ app.register(proxy, {
   rewritePrefix: '/',
 });
 
-// this is my import {  } from "module";
 app.listen({ port: config.port, host: '0.0.0.0' })
   .then(() => app.log.info(`Gateway listening on ${config.port} -> ${config.downstreamUrl}`))
   .catch((err) => {
