@@ -1,4 +1,4 @@
-import { redis } from './redis'
+import { redis } from './redis.js'
 
 type RouteConfig = {
   path: string;
@@ -35,7 +35,7 @@ export function startConfigPolling(
 }
 
 export async function refreshApiKeys(controlPlaneUrl: string) {
-  const res = await fetch(`${controlPlaneUrl/api/api-keys/active}`);
+  const res = await fetch(`${controlPlaneUrl}/api/api-keys/active`);
   if (!res.ok) return;
   const { keys } = await res.json() as { keys: { key: string; userId: string; expiresAt: string | null}[] };
   const pipeline = redis.pipeline();
