@@ -1,3 +1,5 @@
+import { redis } from './redis'
+
 type RouteConfig = {
   path: string;
   serviceName: string;
@@ -30,4 +32,17 @@ export function startConfigPolling(
 ) {
   refreshConfig(controlPlaneUrl);
   setInterval(() => refreshConfig(controlPlaneUrl), intervalMs);
+}
+
+export async function refreshApiKeys(controlPlaneUrl: string) {
+  const res = await fetch(`${controlPlaneUrl/api/api-keys/active}`);
+  if (!res.ok) return;
+  const { keys } = await res.json() as { keys: { key: string; userId: string; expiresAt: string | null}[] };
+  const pipeline = redis.pipeline();
+  pipeline.del('valid_api_keys');
+  for (const k of keys) {
+    pipeline.sadd('valid_api_keys', k.key);
+    pipeline.set(`api_key_set:${k.key}`, JSON.stringify({ userId: k.userId }));
+  }
+  await pipeline.exec();
 }
