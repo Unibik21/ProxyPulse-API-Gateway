@@ -6,7 +6,7 @@ export async function GET(){
         include : {service:true},
     });
 
-    const config = routes.map(r => ({
+    const config = routes.map((r: (typeof routes)[number]) => ({
         path : r.path,
         serviceName : r.service.name,
         baseUrl : r.service.baseUrl,
