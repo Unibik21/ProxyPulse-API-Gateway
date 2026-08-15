@@ -1,13 +1,7 @@
-<<<<<<< HEAD
-import Fastify from "fastify";
-import { getRoute, startConfigPolling } from "./configStore.js";
-import { config } from "./config.js";
-=======
 import Fastify from 'fastify';
 import { getRoute, startConfigPolling } from './configStore.js';
 import { config } from './config.js';
 
->>>>>>> d58ff72 (changes)
 
 const app = Fastify({ logger: true });
 
