@@ -51,14 +51,13 @@ export default function Sidebar() {
       <div className="mx-3 mb-4 rounded-lg border border-ink-border bg-ink px-3 py-3">
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-route" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-route" />
+            <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-signal" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-signal" />
           </span>
-          <span className="text-[11px] font-medium text-text-dim">Mock data mode</span>
+          <span className="text-[11px] font-medium text-text-dim">Connected</span>
         </div>
         <p className="mt-1.5 text-[11px] leading-relaxed text-text-faint">
-          Not wired to the Control Plane API yet. Changes here stay in this
-          browser until Phase 3 connects the real endpoint.
+          Wired to the Control Plane API. Changes persist to the database.
         </p>
       </div>
     </aside>

@@ -1,8 +1,16 @@
-import { NextRequest,NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomBytes, createHash } from "crypto";
 
-export async function POST(req: NextRequest){
+export async function GET() {
+  const keys = await prisma.apiKey.findMany({
+    include: { user: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return NextResponse.json(keys);
+}
+
+export async function POST(req: NextRequest) {
 
     const {userId} = await req.json();
 

@@ -1,5 +1,52 @@
 @import "tailwindcss";
 
+/* ── Design Tokens ─────────────────────────────────────────────────── */
+@theme {
+  /* ink (surfaces) */
+  --color-ink: #0b0f17;
+  --color-ink-panel: #111722;
+  --color-ink-panel2: #1a2233;
+  --color-ink-border: #1e2a3a;
+  --color-ink-border2: #2c3a4f;
+
+  /* text */
+  --color-text: #e8ecf3;
+  --color-text-dim: #8b95a8;
+  --color-text-faint: #515d72;
+
+  /* accent: teal signal */
+  --color-signal: #3ed6c4;
+
+  /* accent: amber route params */
+  --color-route: #f5a623;
+
+  /* accent: blue wire / links */
+  --color-wire: #5b8def;
+
+  /* accent: purple plum */
+  --color-plum: #a78bfa;
+
+  /* danger red */
+  --color-danger: #ef4444;
+
+  /* shadows */
+  --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.25);
+
+  /* fonts */
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+
+  /* pulse-ring animation */
+  --animate-pulse-ring: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0%, 100% { opacity: 0; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(2.2); }
+}
+
+/* ── Base Styles ───────────────────────────────────────────────────── */
 html {
   color-scheme: dark;
 }
@@ -22,6 +69,7 @@ body {
   scrollbar-width: thin;
 }
 
+/* ── Focus Ring ────────────────────────────────────────────────────── */
 .focus-ring {
   outline: none;
 }
@@ -31,6 +79,7 @@ body {
   border-radius: 4px;
 }
 
+/* ── Reduced Motion ────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;
