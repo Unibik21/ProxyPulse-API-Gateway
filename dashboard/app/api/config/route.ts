@@ -11,6 +11,7 @@ export async function GET(){
         serviceName : r.service.name,
         baseUrl : r.service.baseUrl,
         ratelimit : r.rateLimit,
+        cacheTtl: r.cacheTtl,
     }));
 
     return NextResponse.json({routes:config});
