@@ -5,6 +5,7 @@ type RouteConfig = {
   serviceName: string;
   baseUrl: string;
   rateLimit: number | null;
+  cacheTtl:number;
 };
 
 let routeTable: Map<string, RouteConfig> = new Map();
@@ -45,4 +46,17 @@ export async function refreshApiKeys(controlPlaneUrl: string) {
     pipeline.set(`api_key_set:${k.key}`, JSON.stringify({ userId: k.userId }));
   }
   await pipeline.exec();
+}
+
+export async function getAllServices(): Promise<{ name: string; baseUrl: string}[]>{
+  const services = new Map<string, {name:string; baseUrl:string}>();
+
+  for(const route of routeTable.values()){
+    services.set(route.serviceName,{
+      name: route.serviceName,
+      baseUrl: route.baseUrl,
+    });
+  }
+
+  return Array.from(services.values());
 }
