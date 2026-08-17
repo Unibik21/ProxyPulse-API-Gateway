@@ -6,13 +6,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const service = await prisma.service.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id },
-    include: { routes: true },
+    include: { apiKeys: true },
   });
-  if (!service)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(service);
+  if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(user);
 }
 
 export async function PUT(
@@ -22,17 +21,15 @@ export async function PUT(
   const { id } = await params;
   const body = await req.json();
 
-  const service = await prisma.service.update({
+  const user = await prisma.user.update({
     where: { id },
     data: {
       ...(body.name !== undefined && { name: body.name }),
-      ...(body.baseUrl !== undefined && { baseUrl: body.baseUrl }),
-      ...(body.healthy !== undefined && { healthy: body.healthy }),
+      ...(body.email !== undefined && { email: body.email }),
     },
-    include: { routes: true },
   });
 
-  return NextResponse.json(service);
+  return NextResponse.json(user);
 }
 
 export async function DELETE(
@@ -40,6 +37,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  await prisma.service.delete({ where: { id } });
+  await prisma.user.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }
