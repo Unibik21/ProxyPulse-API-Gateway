@@ -15,6 +15,7 @@ CREATE TABLE "Route" (
     "path" TEXT NOT NULL,
     "serviceId" TEXT NOT NULL,
     "rateLimit" INTEGER,
+    "cacheTtl" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Route_pkey" PRIMARY KEY ("id")
