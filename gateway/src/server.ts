@@ -1,102 +1,211 @@
-import Fastify from "fastify";
-import { getRoute, startConfigPolling } from "./configStore.js";
-import { config } from "./config.js";
-import { authenticate } from "./auth.js";
-import { checkRateLimit } from './rateLimiter.js'
-import { getCachedResponse} from "./cache.js";
+import Fastify from 'fastify';
+import { getRoute, startConfigPolling } from './configStore.js';
+import { authenticate } from './auth.js';
+import { checkRateLimit } from './rateLimiter.js';
+import { getCachedResponse, setCachedResponse } from './cache.js';
+import { startHealthChecks } from './healthCheck.js';
+import { config } from './config.js';
+import {
+  httpRequestsTotal,
+  httpRequestDuration,
+  cacheHitsTotal,
+  cacheMissesTotal,
+  rateLimitRejectionsTotal,
+  registry,
+} from './metrics.js';
+import { pushLog } from './logger.js';
 
 const app = Fastify({ logger: true });
 
-app.all("/*", async (req, reply) => {
-  const requestPath = req.url ?? "/";
-  const routePath = requestPath.split("?")[0] ?? "/";
-  const route = getRoute(routePath);
+app.get('/metrics', async (_req, reply) => {
+  reply.header('Content-Type', registry.register.contentType);
+  return reply.send(await registry.register.metrics());
+});
 
+app.all('/*', async (req, reply) => {
+  const startTime = process.hrtime.bigint();
+  const pathOnly = req.url.split('?')[0] as string;
+  const route = getRoute(pathOnly);
 
-  // check if route is valid or not
-  // if not return 400 or else proceed for auth
+  const finish = async (
+    statusCode: number,
+    serviceName: string | null,
+    userId: string | null,
+    cacheStatus: 'HIT' | 'MISS' | 'N/A'
+  ) => {
+    const durationSec =
+      Number(process.hrtime.bigint() - startTime) / 1e9;
+
+    httpRequestsTotal.inc({
+      method: req.method,
+      route: pathOnly,
+      status_code: statusCode,
+      service: serviceName ?? 'none',
+    });
+
+    httpRequestDuration.observe(
+      {
+        method: req.method,
+        route: pathOnly,
+        status_code: statusCode,
+        service: serviceName ?? 'none',
+      },
+      durationSec
+    );
+
+    await pushLog({
+      timestamp: new Date().toISOString(),
+      method: req.method,
+      path: pathOnly,
+      statusCode,
+      durationMs: durationSec * 1000,
+      service: serviceName,
+      userId,
+      ip: req.ip,
+      cacheStatus,
+    });
+  };
+
   if (!route) {
+    await finish(404, null, null, 'N/A');
+
     return reply
-      .status(400)
-      .send({ error: "Nor route configured for this path" });
+      .status(404)
+      .send({ error: 'No route configured for this path' });
   }
 
-  //auth
   const authResult = await authenticate(req, reply);
-  if (!authResult) return;
+
+  if (!authResult) {
+    await finish(401, route.serviceName, null, 'N/A');
+    return;
+  }
 
   const { allowed, remaining } = await checkRateLimit(
     authResult.userId,
-    routePath,
+    pathOnly,
     route.rateLimit ?? undefined
   );
-  reply.header('X - RateLimiting - Remaining', remaining);
+
+  reply.header('X-RateLimit-Remaining', remaining);
+
   if (!allowed) {
-    return reply.status(429).send({ error: 'Rate limit exceeded' });
+    rateLimitRejectionsTotal.inc({
+      user_id: authResult.userId,
+      route: pathOnly,
+    });
+
+    await finish(
+      429,
+      route.serviceName,
+      authResult.userId,
+      'N/A'
+    );
+
+    return reply
+      .status(429)
+      .send({ error: 'Rate limit exceeded' });
   }
 
-
-  // cache check
-  if(route.cacheTtl){
+  if (route.cacheTtl) {
     const cached = await getCachedResponse(req);
-    if(cached){
-      reply.header('X-Cache','HIT');
+
+    if (cached) {
+      cacheHitsTotal.inc({
+        route: pathOnly,
+      });
+
+      reply.header('X-Cache', 'HIT');
       reply.status(cached.status);
 
-      for(const [k,v] of Object.entries(cached.headers)) reply.header(k,v);
+      for (const [key, value] of Object.entries(cached.headers)) {
+        reply.header(key, value);
+      }
+
+      await finish(
+        cached.status,
+        route.serviceName,
+        authResult.userId,
+        'HIT'
+      );
+
       return reply.send(cached.body);
     }
+
+    cacheMissesTotal.inc({
+      route: pathOnly,
+    });
   }
 
-  const targetUrl = `${route.baseUrl}${requestPath}`;
+  const targetUrl = `${route.baseUrl}${req.url}`;
 
   try {
-    const init: RequestInit = {
+    const upstreamRes = await fetch(targetUrl, {
       method: req.method,
       headers: req.headers as HeadersInit,
-    };
+      body: ['GET', 'HEAD'].includes(req.method)
+        ? null
+        : JSON.stringify(req.body),
+    });
 
-    const payload = ["GET", "HEAD"].includes(req.method)
-      ? undefined
-      : JSON.stringify(req.body);
-    if (payload !== undefined) {
-      init.body = payload;
+    const bodyBuf = await upstreamRes.arrayBuffer();
+    const bodyText = Buffer.from(bodyBuf).toString('utf-8');
+
+    reply.status(upstreamRes.status);
+
+    const headersObj: Record<string, string> = {};
+
+    upstreamRes.headers.forEach((value, key) => {
+      reply.header(key, value);
+      headersObj[key] = value;
+    });
+
+    reply.header('X-Cache', 'MISS');
+
+    if (route.cacheTtl) {
+      await setCachedResponse(
+        req,
+        upstreamRes.status,
+        headersObj,
+        bodyText,
+        route.cacheTtl
+      );
     }
 
-    const upstreamRes = await fetch(targetUrl, init);
+    await finish(
+      upstreamRes.status,
+      route.serviceName,
+      authResult.userId,
+      route.cacheTtl ? 'MISS' : 'N/A'
+    );
 
-    const body = await upstreamRes.arrayBuffer();
-    reply.status(upstreamRes.status);
-    upstreamRes.headers.forEach((value, key) => reply.header(key, value));
-    return reply.send(Buffer.from(body));
+    return reply.send(bodyText);
   } catch (err) {
     req.log.error(err);
-    return reply.status(502).send({ error: "Upstream unreachable" });
+
+    await finish(
+      502,
+      route.serviceName,
+      authResult.userId,
+      'N/A'
+    );
+
+    return reply
+      .status(502)
+      .send({ error: 'Upstream unreachable' });
   }
 });
 
 startConfigPolling(config.controlPlaneUrl);
+startHealthChecks();
 
-app
-  .listen({ port: config.port, host: "0.0.0.0" })
+app.listen({
+  port: config.port,
+  host: '0.0.0.0',
+})
   .then(() => {
-    // #region agent log
-    fetch("http://127.0.0.1:7910/ingest/d3892d76-a7c6-4f9f-a942-5991539418d3", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "dc8607" },
-      body: JSON.stringify({
-        sessionId: "dc8607",
-        runId: "pre-fix",
-        hypothesisId: "A",
-        location: "gateway/src/server.ts",
-        message: "gateway listening",
-        data: { port: config.port, controlPlaneUrl: config.controlPlaneUrl },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     app.log.info(
-      `Gateway listening on ${config.port}, control plane running on ${config.controlPlaneUrl}`,
+      `Gateway listening on ${config.port}, control plane: ${config.controlPlaneUrl}`
     );
   })
   .catch((err) => {
