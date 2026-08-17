@@ -32,7 +32,9 @@ export function startConfigPolling(
   intervalMs = 10_000,
 ) {
   refreshConfig(controlPlaneUrl);
+  refreshApiKeys(controlPlaneUrl);
   setInterval(() => refreshConfig(controlPlaneUrl), intervalMs);
+  setInterval(() => refreshApiKeys(controlPlaneUrl), intervalMs);
 }
 
 export async function refreshApiKeys(controlPlaneUrl: string) {
@@ -43,7 +45,7 @@ export async function refreshApiKeys(controlPlaneUrl: string) {
   pipeline.del('valid_api_keys');
   for (const k of keys) {
     pipeline.sadd('valid_api_keys', k.key);
-    pipeline.set(`api_key_set:${k.key}`, JSON.stringify({ userId: k.userId }));
+    pipeline.set(`api_key_meta:${k.key}`, JSON.stringify({ userId: k.userId }));
   }
   await pipeline.exec();
 }

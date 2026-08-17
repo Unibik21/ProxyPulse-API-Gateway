@@ -12,7 +12,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6969:6379"
+      - "6379:6379"
 
   prometheus:
     image: prom/prometheus:latest
@@ -20,7 +20,5 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    depends_on:
-      - gateway
 volumes:
   pgdata:

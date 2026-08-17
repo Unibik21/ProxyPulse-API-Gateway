@@ -7,20 +7,38 @@ export async function GET() {
     include: { user: true },
     orderBy: { createdAt: "desc" },
   });
-  return NextResponse.json(keys);
+  
+  // Remove sensitive key hash from response
+  const sanitizedKeys = keys.map(({ key, ...rest }) => rest);
+  return NextResponse.json(sanitizedKeys);
 }
 
 export async function POST(req: NextRequest) {
-
+  try{  
     const {userId} = await req.json();
-
-    const rawKey = `gk_${randomBytes(24).toString('hex')}`;
-    const hashedKey = createHash('sha256').update(rawKey).digest('hex');
+    if (!userId) {
+      return NextResponse.json(
+        { error: "userId is required" },
+        { status: 400 }
+      );
+    }
+    const rawKey = `gk_${randomBytes(24).toString("hex")}`;
+    const hashedKey = createHash("sha256").update(rawKey).digest("hex");
 
     await prisma.apiKey.create({
         data: {key:hashedKey, userId},
     });
 
     return NextResponse.json({apiKey:rawKey}, {status:201});
+  }
+  catch (error) {
+    console.error("Failed to create API key:", error);
+
+    return NextResponse.json(
+      { error: "Failed to create API key" },
+      { status: 500 }
+    );
+  }
 }
+
 
