@@ -17,7 +17,7 @@ export async function authenticate(
 
 
   if (!isValid) {
-    reply.status(401).send({ error: 'Invald or revoked API key' });
+    reply.status(401).send({ error: 'Invalid or revoked API key' });
     return null;
   }
 

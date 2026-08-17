@@ -37,6 +37,14 @@ export function startConfigPolling(
   setInterval(() => refreshApiKeys(controlPlaneUrl), intervalMs);
 }
 
+export function startApiKeyPolling(
+  controlPlaneUrl: string,
+  intervalMs = 10_000,
+) {
+  refreshApiKeys(controlPlaneUrl);
+  setInterval(() => refreshApiKeys(controlPlaneUrl), intervalMs);
+}
+
 export async function refreshApiKeys(controlPlaneUrl: string) {
   const res = await fetch(`${controlPlaneUrl}/api/api-keys/active`);
   if (!res.ok) return;

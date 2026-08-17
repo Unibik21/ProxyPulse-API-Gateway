@@ -1,5 +1,9 @@
 import Fastify from 'fastify';
-import { getRoute, startConfigPolling } from './configStore.js';
+import {
+  getRoute,
+  startApiKeyPolling,
+  startConfigPolling,
+} from './configStore.js';
 import { authenticate } from './auth.js';
 import { checkRateLimit } from './rateLimiter.js';
 import { getCachedResponse, setCachedResponse } from './cache.js';
@@ -197,6 +201,7 @@ app.all('/*', async (req, reply) => {
 });
 
 startConfigPolling(config.controlPlaneUrl);
+startApiKeyPolling(config.controlPlaneUrl);
 startHealthChecks();
 
 app.listen({
