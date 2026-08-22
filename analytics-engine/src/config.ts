@@ -5,5 +5,5 @@ export const config = {
     wsPort: Number(process.env.WS_PORT) || 8090,
     broadcastIntervalMs: Number(process.env.BROADCAST_INTERVAL_MS) || 5000,
     ipSpamThreshold : Number(process.env.IP_SPAM_THRESHOLD)|| 200,
-    isSpamWindowSec: 60,
+    ipSpamWindowSec: 60,
 };
