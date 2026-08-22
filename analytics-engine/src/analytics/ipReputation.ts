@@ -4,9 +4,9 @@ import { config } from '../config.js';
 
 export async function recordIpHit(entry: LogEntry){
     const key = `analytics:ip_hits:${entry.ip}`;
-    const pipeline = redis.pipline();
+    const pipeline = redis.pipeline();
     pipeline.incr(key);
-    pipeline.expire(key, config.isSpamWindowSec);
+    pipeline.expire(key, config.ipSpamWindowSec);
     await pipeline.exec();
 }
 
@@ -16,7 +16,7 @@ export type IpReputationEntry = {
     suspicious:boolean;
 };
 
-export async function computeReputation(): Promise<IpReputationEntry[]> {
+export async function computeIpReputation(): Promise<IpReputationEntry[]> {
     const keys = await redis.keys('analytics:ip_hits:*');
     const results: IpReputationEntry[] = [];
 
