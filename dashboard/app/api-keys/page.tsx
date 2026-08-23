@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
 import Drawer from "@/components/Drawer";
 import { Field, inputClass, selectClass } from "@/components/Field";
@@ -23,6 +23,8 @@ export default function ApiKeysPage() {
   const { apiKeys, users, addApiKey, updateApiKey, deleteApiKey } = useStore();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(emptyDraft(users[0]?.id ?? ""));
+  const [revealedKey, setRevealedKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const userName = (id: string) => users.find((u) => u.id === id)?.name ?? "— unknown —";
 
@@ -31,12 +33,33 @@ export default function ApiKeysPage() {
     setOpen(true);
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.SubmitEvent) {
     e.preventDefault();
     if (!draft.label.trim() || !draft.user_id) return;
-    addApiKey(draft);
+    const rawKey = await addApiKey(draft);
     setOpen(false);
+    if (rawKey) {
+      setRevealedKey(rawKey);
+      setCopied(false);
+    }
   }
+
+  function copyKey() {
+    if (!revealedKey) return;
+    navigator.clipboard.writeText(revealedKey);
+    setCopied(true);
+  }
+
+  function dismissKey() {
+    setRevealedKey(null);
+    setCopied(false);
+  }
+
+  useEffect(() => {
+    if (!copied) return;
+    const t = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(t);
+  }, [copied]);
 
   const active = apiKeys.filter((k) => k.is_active).length;
 
@@ -122,6 +145,39 @@ export default function ApiKeysPage() {
           </tbody>
         </table>
       </div>
+
+      {revealedKey && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={dismissKey} />
+          <div className="relative w-full max-w-lg rounded-xl border border-ink-border bg-ink-panel p-6 shadow-2xl">
+            <h2 className="font-display text-[15px] font-semibold text-text">Save your API key</h2>
+            <p className="mt-1 text-[13px] text-text-dim">
+              This is the only time the full key will be shown. Copy it now — it cannot be retrieved later.
+            </p>
+
+            <div className="mt-4 flex items-center gap-2 rounded-lg border border-ink-border bg-surface px-3 py-2.5">
+              <code className="flex-1 break-all font-mono text-[12px] text-signal select-all">
+                {revealedKey}
+              </code>
+              <button
+                onClick={copyKey}
+                className="focus-ring shrink-0 rounded-md border border-ink-border px-3 py-1.5 text-[12px] font-medium text-text hover:bg-ink-panel2"
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={dismissKey}
+                className="focus-ring rounded-md bg-signal px-4 py-2 text-[13px] font-semibold text-ink hover:bg-signal/90"
+              >
+                I've saved it, close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Drawer open={open} onClose={() => setOpen(false)} title="Issue API key">
         <form onSubmit={submit}>
