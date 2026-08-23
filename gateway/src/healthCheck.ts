@@ -10,7 +10,7 @@ export async function checkServiceHealth(){
 
         }
         catch{
-            await redis.set(`service_name:${svc.name}`,'unreachable','EX',30);
+            await redis.set(`service_health:${svc.name}`,'unreachable','EX',30);
         }
     }
 }
