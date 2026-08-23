@@ -1,7 +1,6 @@
 import Fastify from 'fastify';
 import {
   getRoute,
-  startApiKeyPolling,
   startConfigPolling,
 } from './configStore.js';
 import { authenticate } from './auth.js';
@@ -201,7 +200,6 @@ app.all('/*', async (req, reply) => {
 });
 
 startConfigPolling(config.controlPlaneUrl);
-startApiKeyPolling(config.controlPlaneUrl);
 startHealthChecks();
 
 app.listen({

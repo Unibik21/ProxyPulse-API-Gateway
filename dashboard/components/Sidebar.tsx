@@ -9,6 +9,7 @@ const NAV = [
   { href: "/routes", label: "Routes", glyph: "⇥" },
   { href: "/api-keys", label: "API keys", glyph: "◈" },
   { href: "/users", label: "Users", glyph: "◐" },
+  { href: "/analytics", label: "Analytics", glyph: "▥" },
 ];
 
 export default function Sidebar() {
