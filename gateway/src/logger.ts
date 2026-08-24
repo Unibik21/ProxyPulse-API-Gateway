@@ -10,6 +10,7 @@ export type LogEntry = {
     userId: string | null;
     ip: string; 
     cacheStatus: 'HIT' | 'MISS' | 'N/A';
+    orgId: string | null;
 };
 
 const LOG_QUEUE_KEY = 'log_queue';

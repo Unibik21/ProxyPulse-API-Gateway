@@ -1,20 +1,32 @@
-import {NextRequest,NextResponse} from 'next/server'
-import {prisma} from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 
 export async function GET() {
-    const services = await prisma.service.findMany({include: {routes:true}})
-    return NextResponse.json(services);
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const services = await prisma.service.findMany({
+    where:   { orgId: session.orgId },
+    include: { routes: true },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return NextResponse.json(services);
 }
 
-export async function POST(req: NextRequest){
-    const body = await req.json();
-    if(!body.name || !body.baseUrl){
-        return NextResponse.json({error:'name and baseUrl required'},{status:400});
-    }
+export async function POST(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const service  = await prisma.service.create({
-        data:{name:body.name, baseUrl:body.baseUrl},
-    });
+  const body = await req.json();
+  if (!body.name || !body.baseUrl) {
+    return NextResponse.json({ error: 'name and baseUrl required' }, { status: 400 });
+  }
 
-    return NextResponse.json(service,{status:201});
+  const service = await prisma.service.create({
+    data: { name: body.name, baseUrl: body.baseUrl, orgId: session.orgId },
+  });
+
+  return NextResponse.json(service, { status: 201 });
 }

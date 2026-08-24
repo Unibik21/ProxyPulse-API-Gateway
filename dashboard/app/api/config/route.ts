@@ -12,6 +12,7 @@ export async function GET(){
         baseUrl : r.service.baseUrl,
         ratelimit : r.rateLimit,
         cacheTtl: r.cacheTtl,
+        orgId: r.service.orgId,
     }));
 
     return NextResponse.json({routes:config});

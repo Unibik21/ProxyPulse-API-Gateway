@@ -11,33 +11,47 @@ export type AnalyticsSnapshot = {
   cacheRecommendations: { path: string; reason: string; detail: string }[];
 };
 
-const WS_URL = process.env.NEXT_PUBLIC_ANALYTICS_WS_URL || 'ws://localhost:8090';
+const WS_BASE = process.env.NEXT_PUBLIC_ANALYTICS_WS_URL || 'ws://localhost:8090';
 
-export function useAnalyticsSocket() {
+export function useAnalyticsSocket(orgId: string | null) {
   const [snapshot, setSnapshot] = useState<AnalyticsSnapshot | null>(null);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    // Don't connect until we know the orgId
+    if (!orgId) return;
+
+    const wsUrl = `${WS_BASE}?orgId=${encodeURIComponent(orgId)}`;
+    let cancelled = false;
+
     function connect() {
-      const ws = new WebSocket(WS_URL);
+      if (cancelled) return;
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
-      ws.onopen = () => setConnected(true);
+      ws.onopen  = () => !cancelled && setConnected(true);
       ws.onclose = () => {
+        if (cancelled) return;
         setConnected(false);
-        setTimeout(connect, 2000); // reconnect — analytics engine may restart independently
+        setTimeout(connect, 2000);
       };
-      ws.onerror = () => ws.close();
+      ws.onerror  = () => ws.close();
       ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
+        if (cancelled) return;
+        const data = JSON.parse(event.data as string);
         if (data.type === 'analytics_snapshot') setSnapshot(data);
       };
     }
 
     connect();
-    return () => wsRef.current?.close();
-  }, []);
+
+    return () => {
+      cancelled = true;
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
+  }, [orgId]); // reconnect when orgId changes
 
   return { snapshot, connected };
 }

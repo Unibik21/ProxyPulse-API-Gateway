@@ -4,8 +4,8 @@ import type { LogEntry } from "../types.js";
 const MAX_SAMPLES = 1000; // capped rolling window per service, avoids unbounded memory
 
 export async function recordLatency(entry: LogEntry) {
-  if (!entry.service) return;
-  const key = `analytics:latency:${entry.service}`;
+  if (!entry.service || !entry.orgId) return;
+  const key = `analytics:${entry.orgId}:latency:${entry.service}`;
   await redis.lpush(key, entry.durationMs);
   await redis.ltrim(key, 0, MAX_SAMPLES - 1);
 }
@@ -17,12 +17,12 @@ export type LatencyStats = {
   sampleCount: number;
 };
 
-export async function computeLatencyStats(): Promise<LatencyStats[]> {
-  const keys = await redis.keys('analytics:latency:*');
+export async function computeLatencyStats(orgId: string): Promise<LatencyStats[]> {
+  const keys = await redis.keys(`analytics:${orgId}:latency:*`);
   const results: LatencyStats[] = [];
 
   for (const key of keys) {
-    const service = key.replace('analytics:latency:', '');
+    const service = key.replace(`analytics:${orgId}:latency:`, '');
     const raw = await redis.lrange(key, 0, -1);
     if (raw.length === 0) continue;
 
