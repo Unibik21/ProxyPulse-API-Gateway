@@ -3,7 +3,8 @@ import type{ LogEntry } from '../types.js';
 import { config } from '../config.js';
 
 export async function recordIpHit(entry: LogEntry){
-    const key = `analytics:ip_hits:${entry.ip}`;
+    if (!entry.orgId) return;
+    const key = `analytics:${entry.orgId}:ip:${entry.ip}`;
     const pipeline = redis.pipeline();
     pipeline.incr(key);
     pipeline.expire(key, config.ipSpamWindowSec);
@@ -16,12 +17,12 @@ export type IpReputationEntry = {
     suspicious:boolean;
 };
 
-export async function computeIpReputation(): Promise<IpReputationEntry[]> {
-    const keys = await redis.keys('analytics:ip_hits:*');
+export async function computeIpReputation(orgId: string): Promise<IpReputationEntry[]> {
+    const keys = await redis.keys(`analytics:${orgId}:ip:*`);
     const results: IpReputationEntry[] = [];
 
     for( const key of keys){
-        const ip = key.replace('analytics:ip_hits:','');
+        const ip = key.replace(`analytics:${orgId}:ip:`,'');
         const countRaw = await redis.get(key);
         const requestCount = Number(countRaw) || 0;
         results.push({ip, requestCount, suspicious:requestCount >= config.ipSpamThreshold});
