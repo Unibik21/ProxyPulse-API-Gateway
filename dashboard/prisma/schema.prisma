@@ -16,15 +16,15 @@ model Organization {
   users     User[]
 }
 
-// Dashboard login accounts — one per person, scoped to an org
 model Admin {
-  id           String       @id @default(uuid())
-  email        String       @unique
+  id           String          @id @default(uuid())
+  email        String          @unique
   passwordHash String
   name         String?
   orgId        String
-  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt    DateTime     @default(now())
+  org          Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt    DateTime        @default(now())
+  oauthAccounts OAuthAccount[]
 }
 
 // Upstream services proxied by the gateway
@@ -73,4 +73,33 @@ model ApiKey {
   active    Boolean   @default(true)
   createdAt DateTime  @default(now())
   expiresAt DateTime?
+}
+
+// OTP codes for email verification (short-lived)
+model OtpCode {
+  id        String     @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  purpose   String     @default("login") // "login" | "register"
+
+  @@index([email, expiresAt])
+}
+
+// OAuth provider accounts linked to Admins
+model OAuthAccount {
+  id          String   @id @default(uuid())
+  adminId     String
+  provider    String   // "google" | "github" | ...
+  providerId  String   // Provider's user ID
+  accessToken String
+  refreshToken String?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  admin       Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
 }

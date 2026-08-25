@@ -165,7 +165,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refresh();
+    // Defer to a microtask so we don't call setState synchronously in the effect body
+    const id = setTimeout(refresh, 0);
+    return () => clearTimeout(id);
   }, [refresh]);
 
   /* ── services ───────────────────────────────────────────────────── */

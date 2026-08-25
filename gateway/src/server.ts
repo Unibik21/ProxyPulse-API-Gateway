@@ -8,6 +8,9 @@ import { checkRateLimit } from './rateLimiter.js';
 import { getCachedResponse, setCachedResponse } from './cache.js';
 import { startHealthChecks } from './healthCheck.js';
 import { config } from './config.js';
+import { pushLog } from './logger.js';
+import { registerOAuthProvider, initiateOAuth, oauthCallback } from './oauth.js';
+import { sendOtp, verifyOtp } from './otp.js';
 import {
   httpRequestsTotal,
   httpRequestDuration,
@@ -16,13 +19,44 @@ import {
   rateLimitRejectionsTotal,
   registry,
 } from './metrics.js';
-import { pushLog } from './logger.js';
 
 const app = Fastify({ logger: true });
 
 app.get('/metrics', async (_req, reply) => {
   reply.header('Content-Type', registry.register.contentType);
   return reply.send(await registry.register.metrics());
+});
+
+app.register(async (app) => {
+  app.post('/oauth/register', async (req, reply) => {
+    const { name, clientId, clientSecret, auth } = req.body as {
+      name: string;
+      clientId: string;
+      clientSecret: string;
+      auth: { authorizeUrl: string; tokenUrl: string; userInfoUrl: string };
+    };
+    registerOAuthProvider(name, { name, clientId, clientSecret, auth });
+    reply.send({ message: 'OAuth provider registered' });
+  });
+
+  app.get('/oauth/start', async (req, reply) => {
+    const { provider } = req.query as { provider: string };
+    initiateOAuth(req, reply, provider);
+  });
+
+  app.get('/oauth/callback', async (req, reply) => {
+    const { provider } = req.query as { provider: string };
+    await oauthCallback(req, reply, provider);
+  });
+
+  app.post('/otp/send', async (req, reply) => {
+    const { email } = req.body as { email: string };
+    await sendOtp(req, reply, email);
+  });
+
+  app.post('/otp/verify', async (req, reply) => {
+    await verifyOtp(req, reply);
+  });
 });
 
 app.all('/*', async (req, reply) => {

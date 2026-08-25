@@ -7,6 +7,7 @@ export async function authenticate(
   reply: FastifyReply
 ): Promise<{ userId: string } | null> {
   const rawKey = req.headers['x-api-key'] as string | undefined;
+
   if (!rawKey) {
     reply.status(401).send({ error: 'Missing X-Api-Key header' });
     return null;
@@ -14,7 +15,6 @@ export async function authenticate(
 
   const hashedKey = createHash('sha256').update(rawKey).digest('hex');
   const isValid = await redis.sismember('valid_api_keys', hashedKey);
-
 
   if (!isValid) {
     reply.status(401).send({ error: 'Invalid or revoked API key' });
