@@ -47,6 +47,17 @@ export interface User {
   created_at: string;
 }
 
+// ── Projects ────────────────────────────────────────────────────────
+export interface Project {
+  id: string;
+  name: string;
+  description: string | null;
+  orgId: string;
+  _count?: {
+    services: number;
+  };
+}
+
 // ── API Keys ────────────────────────────────────────────────────────
 
 export interface ApiKey {

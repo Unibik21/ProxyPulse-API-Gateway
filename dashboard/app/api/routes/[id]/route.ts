@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSession } from '@/lib/session';
+import { requireMember } from '@/lib/permissions';
 
 async function getOwnedRoute(id: string, orgId: string) {
   return prisma.route.findFirst({
@@ -13,11 +13,11 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const guard = await requireMember();
+  if ('error' in guard) return guard.error;
 
   const { id } = await params;
-  const route = await getOwnedRoute(id, session.orgId);
+  const route = await getOwnedRoute(id, guard.session.orgId);
   if (!route) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   return NextResponse.json(route);
@@ -27,19 +27,17 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const guard = await requireMember();
+  if ('error' in guard) return guard.error;
 
   const { id } = await params;
-  const existing = await getOwnedRoute(id, session.orgId);
+  const existing = await getOwnedRoute(id, guard.session.orgId);
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const body = await req.json();
-
-  // If changing service, verify it belongs to the same org
   if (body.serviceId) {
     const svc = await prisma.service.findFirst({
-      where: { id: body.serviceId, orgId: session.orgId },
+      where: { id: body.serviceId, orgId: guard.session.orgId },
     });
     if (!svc) return NextResponse.json({ error: 'Service not found' }, { status: 404 });
   }
@@ -62,11 +60,11 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const guard = await requireMember();
+  if ('error' in guard) return guard.error;
 
   const { id } = await params;
-  const existing = await getOwnedRoute(id, session.orgId);
+  const existing = await getOwnedRoute(id, guard.session.orgId);
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   await prisma.route.delete({ where: { id } });

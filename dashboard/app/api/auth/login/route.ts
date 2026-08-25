@@ -18,8 +18,27 @@ export async function POST(req: NextRequest) {
       include: { org: true },
     });
 
-    if (!admin || !verifyPassword(password, admin.passwordHash)) {
-      // Same error for both cases to prevent email enumeration
+    if (!admin) {
+      // No account — maybe there's a pending invitation for this email
+      const invitation = await prisma.invitation.findFirst({
+        where: { email, acceptedAt: null, expiresAt: { gt: new Date() } },
+      });
+      if (invitation) {
+        return NextResponse.json(
+          {
+            error: 'You have a pending invitation — use the link in your invite email to set a password',
+            hasInvitation: true,
+          },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      );
+    }
+
+    if (!verifyPassword(password, admin.passwordHash)) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -31,10 +50,12 @@ export async function POST(req: NextRequest) {
       orgId:   admin.orgId,
       email:   admin.email,
       name:    admin.name,
+      role:    admin.role as 'admin' | 'developer',
     });
 
     const res = NextResponse.json({
       message: 'Logged in',
+      role:    admin.role,
       org:     { id: admin.org.id, name: admin.org.name, slug: admin.org.slug },
     });
 

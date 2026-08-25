@@ -47,10 +47,12 @@ export async function POST(req: NextRequest) {
       orgId:   admin.orgId,
       email:   admin.email,
       name:    admin.name,
+      role:    admin.role as 'admin' | 'developer',
     });
 
     const res = NextResponse.json({
       message: 'Logged in',
+      role:    admin.role,
       org:     { id: admin.org.id, name: admin.org.name, slug: admin.org.slug },
     });
 

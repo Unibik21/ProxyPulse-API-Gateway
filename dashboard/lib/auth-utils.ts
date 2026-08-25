@@ -11,11 +11,16 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 const SECRET = process.env.AUTH_SECRET ?? 'dev-secret-change-me-in-production';
 const TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
+// Organization roles. "admin" = full access; "developer" = build & view.
+// Kept as a string union so future roles plug in without schema changes.
+export type OrgRole = 'admin' | 'developer';
+
 export interface SessionPayload {
   adminId: string;
   orgId:   string;
   email:   string;
   name:    string | null;
+  role:    OrgRole;
   exp:     number;
   iat:     number;
 }

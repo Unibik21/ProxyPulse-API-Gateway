@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSession } from '@/lib/session';
+import { requireMember } from '@/lib/permissions';
 
 export async function GET() {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const guard = await requireMember();
+  if ('error' in guard) return guard.error;
 
   const routes = await prisma.route.findMany({
-    where:   { service: { orgId: session.orgId } },
+    where:   { service: { orgId: guard.session.orgId } },
     include: { service: true },
     orderBy: { createdAt: 'desc' },
   });
@@ -16,20 +16,20 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // developer-or-above can add services/routes per the access matrix
+  const guard = await requireMember();
+  if ('error' in guard) return guard.error;
 
   const body = await req.json();
   if (!body.path || !body.serviceId) {
     return NextResponse.json(
-      { error: 'path and serviceId are required' },
-      { status: 400 }
+      { error: 'path and serviceId are required' }, { status: 400 }
     );
   }
 
   // Ensure the service belongs to this org
   const service = await prisma.service.findFirst({
-    where: { id: body.serviceId, orgId: session.orgId },
+    where: { id: body.serviceId, orgId: guard.session.orgId },
   });
   if (!service) {
     return NextResponse.json({ error: 'Service not found' }, { status: 404 });

@@ -79,7 +79,7 @@ function toApiKey(raw: any): ApiKey {
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 interface Store {
-  // state
+// state
   services: Service[];
   routes: Route[];
   users: User[];
@@ -101,7 +101,7 @@ interface Store {
   updateUser: (id: string, draft: Partial<{ name: string; email: string; role: UserRole }>) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
 
-  // api keys
+// api keys
   addApiKey: (draft: { label: string; user_id: string; is_active: boolean }) => Promise<string | null>;
   updateApiKey: (id: string, draft: Partial<{ is_active: boolean }>) => Promise<void>;
   deleteApiKey: (id: string) => Promise<void>;
@@ -347,6 +347,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: draft.user_id,
+          label: draft.label,
         }),
       });
       if (!res.ok) throw new Error("Failed to create API key");
