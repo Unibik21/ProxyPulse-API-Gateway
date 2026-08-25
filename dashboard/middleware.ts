@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 
 // ── Paths that never need a session ─────────────────────────────────
 // Auth UI + auth API endpoints
-const PUBLIC_PREFIXES = ['/login', '/register', '/verify-otp', '/api/auth/'];
+const PUBLIC_PREFIXES = ['/login', '/register', '/verify-otp', '/accept-invite', '/api/auth/', '/api/invitations/accept'];
 
 // Polled by the gateway process itself (machine-to-machine, no cookie)
 const GATEWAY_EXACT = new Set(['/api/config', '/api/api-keys/active']);

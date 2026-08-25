@@ -17,6 +17,7 @@ interface Me {
   name:  string | null;
   email: string;
   org:   { name: string; slug: string } | null;
+  role:  "admin" | "developer" | null;
 }
 
 export default function Sidebar() {
@@ -31,7 +32,7 @@ export default function Sidebar() {
       .then((r) => r.ok ? r.json() : null)
       .then((data) => setMe(data ?? null))
       .catch(() => {});
-  }, []);
+  }, [me?.role]);
 
   async function handleLogout() {
     setLoggingOut(true);

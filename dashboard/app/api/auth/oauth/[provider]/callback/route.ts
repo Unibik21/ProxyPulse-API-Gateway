@@ -76,6 +76,7 @@ export async function GET(
     orgId:   admin.orgId,
     email:   admin.email,
     name:    admin.name,
+    role:    admin.role as 'admin' | 'developer',
   });
 
   const res = NextResponse.redirect(new URL(savedNext, req.nextUrl.origin));

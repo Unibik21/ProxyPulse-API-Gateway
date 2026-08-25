@@ -70,12 +70,15 @@ export async function POST(req: NextRequest) {
       const org = await tx.organization.create({
         data: { name: orgName, slug },
       });
+      // First member of a new organization is always the Admin.
+      // Everyone else joins via invitation with an assigned role.
       const admin = await tx.admin.create({
         data: {
           email,
           name:         adminName ?? null,
           passwordHash: hashPassword(password),
           orgId:        org.id,
+          role:         'admin',
         },
       });
       return { org, admin };
@@ -86,6 +89,7 @@ export async function POST(req: NextRequest) {
       orgId:   org.id,
       email:   admin.email,
       name:    admin.name,
+      role:    'admin',
     });
 
     const res = NextResponse.json(

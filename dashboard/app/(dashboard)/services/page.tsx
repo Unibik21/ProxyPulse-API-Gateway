@@ -76,7 +76,6 @@ export default function ServicesPage() {
               <th className="px-4 py-2.5 font-medium">Name</th>
               <th className="px-4 py-2.5 font-medium">Base URL</th>
               <th className="px-4 py-2.5 font-medium">Status</th>
-              <th className="px-4 py-2.5 font-medium">Added</th>
               <th className="px-4 py-2.5"></th>
             </tr>
           </thead>
@@ -95,7 +94,7 @@ export default function ServicesPage() {
                   <button
                     onClick={() => openEdit(s)}
                     className="focus-ring mr-3 text-[12px] text-wire hover:underline"
-                  >
+                    >
                     Edit
                   </button>
                   <button
@@ -105,7 +104,7 @@ export default function ServicesPage() {
                       }
                     }}
                     className="focus-ring text-[12px] text-danger hover:underline"
-                  >
+                    >
                     Remove
                   </button>
                 </td>
@@ -157,7 +156,8 @@ export default function ServicesPage() {
           </Field>
           <button
             type="submit"
-            className="focus-ring mt-2 w-full rounded-md bg-signal py-2.5 text-[13px] font-semibold text-ink hover:bg-signal/90"
+            disabled={editingId && draft.name.trim() === "" || draft.base_url.trim() === ""}
+            className="focus-ring mt-2 w-full rounded-md bg-signal py-2.5 text-[13px] font-semibold text-ink hover:bg-signal/90 disabled:opacity-50"
           >
             {editingId ? "Save changes" : "Add service"}
           </button>

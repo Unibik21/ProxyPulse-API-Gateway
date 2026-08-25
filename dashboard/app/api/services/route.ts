@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSession } from '@/lib/session';
+import { requireMember } from '@/lib/permissions';
 
 export async function GET() {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const guard = await requireMember();
+  if ('error' in guard) return guard.error;
 
   const services = await prisma.service.findMany({
-    where:   { orgId: session.orgId },
-    include: { routes: true },
+    where:   { orgId: guard.session.orgId },
+    include: { routes: true, project: { select: { id: true, name: true } } },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -16,16 +16,33 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // developer-or-above can create services/routes per the access matrix
+  const guard = await requireMember();
+  if ('error' in guard) return guard.error;
 
   const body = await req.json();
   if (!body.name || !body.baseUrl) {
     return NextResponse.json({ error: 'name and baseUrl required' }, { status: 400 });
   }
 
+  // Optional project assignment — must belong to the same org
+  if (body.projectId) {
+    const project = await prisma.project.findFirst({
+      where: { id: body.projectId, orgId: guard.session.orgId },
+    });
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+  }
+
   const service = await prisma.service.create({
-    data: { name: body.name, baseUrl: body.baseUrl, orgId: session.orgId },
+    data: {
+      name: body.name,
+      baseUrl: body.baseUrl,
+      orgId: guard.session.orgId,
+      ...(body.projectId ? { projectId: body.projectId } : {}),
+    },
+    include: { project: { select: { id: true, name: true } } },
   });
 
   return NextResponse.json(service, { status: 201 });

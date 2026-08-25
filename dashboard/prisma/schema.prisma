@@ -7,24 +7,63 @@ datasource db {
 }
 
 model Organization {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  admins    Admin[]
-  services  Service[]
-  users     User[]
+  id          String       @id @default(uuid())
+  name        String       @unique
+  slug        String       @unique
+  createdAt   DateTime     @default(now())
+  admins      Admin[]
+  services    Service[]
+  users       User[]
+  projects    Project[]
+  invitations Invitation[]
 }
 
+// Organization members with dashboard access.
+// The first member (org creator) gets role "admin"; everyone else joins
+// via an Invitation with the role assigned by an admin.
 model Admin {
-  id           String          @id @default(uuid())
-  email        String          @unique
+  id           String         @id @default(uuid())
+  email        String         @unique
   passwordHash String
   name         String?
-  orgId        String
-  org          Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt    DateTime        @default(now())
+  // Organization role: "admin" | "developer"
+  // Kept as String so new roles can be added later without migration.
+  role          String         @default("admin")
+  orgId         String
+  org           Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
   oauthAccounts OAuthAccount[]
+}
+
+// Email invitations to join an organization with a pre-assigned role.
+model Invitation {
+  id         String        @id @default(uuid())
+  email      String
+  role       String        @default("developer")
+  token      String        @unique
+  orgId      String
+  org        Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invitedBy  String?       // Admin id of who sent it
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime      @default(now())
+
+  @@unique([email, orgId])
+  @@index([token])
+}
+
+// Projects group services/routes within an organization:
+// Organization → Projects → Services → Routes
+model Project {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  services    Service[]
+  createdAt   DateTime     @default(now())
+
+  @@unique([name, orgId])
 }
 
 // Upstream services proxied by the gateway
@@ -36,6 +75,8 @@ model Service {
   createdAt DateTime     @default(now())
   orgId     String
   org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
   routes    Route[]
 
   @@unique([name, orgId])
@@ -52,7 +93,7 @@ model Route {
   createdAt DateTime @default(now())
 }
 
-// API key holders (org members / developers), not dashboard admins
+// API key holders (org members / developers), not dashboard members
 model User {
   id        String       @id @default(uuid())
   email     String
@@ -68,6 +109,7 @@ model User {
 model ApiKey {
   id        String    @id @default(uuid())
   key       String    @unique
+  label     String    @default("")
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   active    Boolean   @default(true)
@@ -90,16 +132,16 @@ model OtpCode {
 
 // OAuth provider accounts linked to Admins
 model OAuthAccount {
-  id          String   @id @default(uuid())
-  adminId     String
-  provider    String   // "google" | "github" | ...
-  providerId  String   // Provider's user ID
-  accessToken String
+  id           String    @id @default(uuid())
+  adminId      String
+  provider     String    // "google" | "github" | ...
+  providerId   String    // Provider's user ID
+  accessToken  String
   refreshToken String?
-  expiresAt   DateTime?
-  createdAt   DateTime @default(now())
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
 
-  admin       Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  admin        Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerId])
 }
