@@ -172,7 +172,7 @@ export default function ApiKeysPage() {
                 onClick={dismissKey}
                 className="focus-ring rounded-md bg-signal px-4 py-2 text-[13px] font-semibold text-ink hover:bg-signal/90"
               >
-                I've saved it, close
+                I&apos;ve saved it, close
               </button>
             </div>
           </div>

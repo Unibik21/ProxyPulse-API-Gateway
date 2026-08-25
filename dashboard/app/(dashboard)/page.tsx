@@ -20,7 +20,7 @@ export default function OverviewPage() {
         <h1 className="font-display text-[20px] font-semibold text-text">Overview</h1>
         <p className="mt-1 text-[13px] text-text-dim">
           Snapshot of what the control plane currently knows. Nothing here is proxying traffic yet —
-          that's Phase 3.
+          that&apos;s Phase 3.
         </p>
       </header>
 
