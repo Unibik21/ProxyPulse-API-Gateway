@@ -13,6 +13,7 @@ export type ServiceStatus = "healthy" | "degraded" | "down";
 export interface Service {
   id: string;
   name: string;
+  project_id: string | null;
   base_url: string;
   status: ServiceStatus;
   created_at: string;       // ISO date
@@ -28,10 +29,23 @@ export interface Route {
   path: string;
   method: HttpMethod;       // UI shows single method per row
   service_id: string;
+  project_id: string | null;
   service_name: string;
   rate_limit: number | null;
   is_active: boolean;
   created_at: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string | null;
+  orgId: string;
+  service_count: number;
+  created_at: string;
+  _count?: {
+    services: number;
+  };
 }
 
 // ── Users ───────────────────────────────────────────────────────────
@@ -47,22 +61,12 @@ export interface User {
   created_at: string;
 }
 
-// ── Projects ────────────────────────────────────────────────────────
-export interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  orgId: string;
-  _count?: {
-    services: number;
-  };
-}
-
 // ── API Keys ────────────────────────────────────────────────────────
 
 export interface ApiKey {
   id: string;
   label: string;
+  user_name: string;
   key_preview: string;      // first 12 chars, e.g. "gk_a1b2c3d4…"
   user_id: string;
   is_active: boolean;

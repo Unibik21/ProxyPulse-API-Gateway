@@ -21,6 +21,7 @@ export async function createInvitation(params: {
   role: 'developer';
   orgId: string;
   invitedBy: string | null;
+  projectId?: string;
 }) {
   const token = randomBytes(32).toString('hex');
 
@@ -36,6 +37,7 @@ export async function createInvitation(params: {
       token,
       orgId: params.orgId,
       invitedBy: params.invitedBy,
+      ...(params.projectId ? { projectId: params.projectId } : {}),
       expiresAt: new Date(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000),
     },
   });

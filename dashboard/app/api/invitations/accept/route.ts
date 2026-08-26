@@ -75,6 +75,11 @@ export async function POST(req: NextRequest) {
         where: { id: invitation.id },
         data:  { acceptedAt: new Date() },
       });
+      if (invitation.projectId) {
+        await tx.projectMember.create({
+          data: { projectId: invitation.projectId, adminId: admin.id },
+        });
+      }
       return admin;
     });
 

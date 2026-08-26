@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
+import { requireAdmin } from '@/lib/permissions';
 
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const projects = await prisma.project.findMany({
-    where: { orgId: session.orgId },
+    where: session.role === 'admin'
+      ? { orgId: session.orgId }
+      : { orgId: session.orgId, members: { some: { adminId: session.adminId } } },
     include: { _count: { select: { services: true } } },
     orderBy: { createdAt: 'desc' },
   });
@@ -16,8 +19,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const guard = await requireAdmin();
+  if ('error' in guard) return guard.error;
+  const session = guard.session;
 
   const { name, description } = await req.json();
   if (!name) {

@@ -9,4 +9,5 @@ export type LogEntry = {
     ip:string;
     cacheStatus:'HIT' | 'MISS' | 'N/A';
     orgId: string | null;
+    projectId: string | null;
 };

@@ -13,16 +13,19 @@ export type AnalyticsSnapshot = {
 
 const WS_BASE = process.env.NEXT_PUBLIC_ANALYTICS_WS_URL || 'ws://localhost:8090';
 
-export function useAnalyticsSocket(orgId: string | null) {
+export function useAnalyticsSocket(orgId: string | null, projectId: string | null) {
   const [snapshot, setSnapshot] = useState<AnalyticsSnapshot | null>(null);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    // Don't connect until we know the orgId
-    if (!orgId) return;
+    setSnapshot(null);
+    setConnected(false);
 
-    const wsUrl = `${WS_BASE}?orgId=${encodeURIComponent(orgId)}`;
+    // Don't connect until we know the orgId
+    if (!orgId || !projectId) return;
+
+    const wsUrl = `${WS_BASE}?orgId=${encodeURIComponent(orgId)}&projectId=${encodeURIComponent(projectId)}`;
     let cancelled = false;
 
     function connect() {
@@ -51,7 +54,7 @@ export function useAnalyticsSocket(orgId: string | null) {
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [orgId]); // reconnect when orgId changes
+  }, [orgId, projectId]); // reconnect when organization or project changes
 
   return { snapshot, connected };
 }

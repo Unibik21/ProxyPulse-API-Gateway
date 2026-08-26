@@ -17,6 +17,7 @@ import type {
   User,
   UserRole,
   ApiKey,
+  Project,
 } from "./types";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -28,6 +29,7 @@ function toService(raw: any): Service {
   return {
     id: raw.id,
     name: raw.name,
+    project_id: raw.projectId ?? null,
     base_url: raw.baseUrl,
     status: raw.healthy ? "healthy" : "down",
     created_at: raw.createdAt,
@@ -42,6 +44,7 @@ function toRoute(raw: any): Route {
     path: raw.path,
     method: "GET" as HttpMethod, // routes don't have a method column in Prisma — default
     service_id: raw.serviceId,
+    project_id: raw.service?.projectId ?? null,
     service_name: raw.service?.name ?? "",
     rate_limit: raw.rateLimit,
     is_active: true, // no active flag in Prisma schema — routes are always active if they exist
@@ -65,7 +68,8 @@ function toUser(raw: any): User {
 function toApiKey(raw: any): ApiKey {
   return {
     id: raw.id,
-    label: raw.user?.name ?? raw.userId,
+    label: raw.label,
+    user_name: raw.user?.name ?? raw.user?.email ?? "Unknown user",
     key_preview: raw.key ? `${raw.key.slice(0, 12)}…` : "••••••••",
     user_id: raw.userId,
     is_active: raw.active,
@@ -84,6 +88,11 @@ interface Store {
   routes: Route[];
   users: User[];
   apiKeys: ApiKey[];
+  projects: Project[];
+  activeProjectId: string | null;
+  setActiveProject: (id: string) => void;
+  addProject: (draft: { name: string; description?: string }) => Promise<Project>;
+  deleteProject: (id: string) => Promise<void>;
   loading: boolean;
 
   // services
@@ -127,6 +136,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [activeProjectId, setActiveProjectIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   /* ── fetch all data ─────────────────────────────────────────────── */
@@ -134,12 +145,40 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [svcRes, routeRes, userRes, keyRes] = await Promise.all([
+      const [projectRes, svcRes, routeRes, userRes, keyRes] = await Promise.all([
+        fetch("/api/projects"),
         fetch("/api/services"),
         fetch("/api/routes"),
         fetch("/api/users"),
         fetch("/api/api-keys"),
       ]);
+
+      if (projectRes.ok) {
+        const data = await projectRes.json();
+        const mappedProjects: Project[] = data.map((project: {
+          id: string;
+          name: string;
+          description: string | null;
+          orgId: string;
+          createdAt: string;
+          _count?: { services: number };
+        }) => ({
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          orgId: project.orgId,
+          service_count: project._count?.services ?? 0,
+          created_at: project.createdAt,
+        }));
+        setProjects(mappedProjects);
+        setActiveProjectIdState((current) => {
+          if (current && mappedProjects.some((project) => project.id === current)) return current;
+          const saved = localStorage.getItem("activeProjectId");
+          return saved && mappedProjects.some((project) => project.id === saved)
+            ? saved
+            : mappedProjects[0]?.id ?? null;
+        });
+      }
 
       if (svcRes.ok) {
         const data = await svcRes.json();
@@ -164,6 +203,43 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const setActiveProject = useCallback((id: string) => {
+    setActiveProjectIdState(id);
+    localStorage.setItem("activeProjectId", id);
+  }, []);
+
+  const addProject = useCallback(async (draft: { name: string; description?: string }) => {
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(draft),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? "Failed to create project");
+    const project: Project = {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+          orgId: data.orgId,
+      service_count: data._count?.services ?? 0,
+      created_at: data.createdAt,
+    };
+    setProjects((previous) => [project, ...previous]);
+    setActiveProject(project.id);
+    return project;
+  }, [setActiveProject]);
+
+  const deleteProject = useCallback(async (id: string) => {
+    const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? "Failed to delete project");
+    setProjects((previous) => previous.filter((project) => project.id !== id));
+    if (activeProjectId === id) {
+      setActiveProjectIdState(null);
+      localStorage.removeItem("activeProjectId");
+    }
+  }, [activeProjectId]);
+
   useEffect(() => {
     // Defer to a microtask so we don't call setState synchronously in the effect body
     const id = setTimeout(refresh, 0);
@@ -180,13 +256,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           name: draft.name,
           baseUrl: draft.base_url,
+          ...(activeProjectId ? { projectId: activeProjectId } : {}),
         }),
       });
       if (!res.ok) throw new Error("Failed to create service");
       const raw = await res.json();
       setServices((prev) => [toService(raw), ...prev]);
     },
-    []
+    [activeProjectId]
   );
 
   const updateService = useCallback(
@@ -389,10 +466,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   /* ── context value ──────────────────────────────────────────────── */
 
   const value: Store = {
-    services,
-    routes,
+    services: activeProjectId ? services.filter((service) => service.project_id === activeProjectId) : services,
+    routes: activeProjectId ? routes.filter((route) => route.project_id === activeProjectId) : routes,
     users,
     apiKeys,
+    projects,
+    activeProjectId,
+    setActiveProject,
+    addProject,
+    deleteProject,
     loading,
     addService,
     updateService,

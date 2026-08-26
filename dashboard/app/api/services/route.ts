@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireMember } from '@/lib/permissions';
+import { requireMember, canAccessProject } from '@/lib/permissions';
 
 export async function GET() {
   const guard = await requireMember();
   if ('error' in guard) return guard.error;
 
   const services = await prisma.service.findMany({
-    where:   { orgId: guard.session.orgId },
+    where: guard.session.role === 'admin'
+      ? { orgId: guard.session.orgId }
+      : { orgId: guard.session.orgId, project: { members: { some: { adminId: guard.session.adminId } } } },
     include: { routes: true, project: { select: { id: true, name: true } } },
     orderBy: { createdAt: 'desc' },
   });
@@ -27,10 +29,7 @@ export async function POST(req: NextRequest) {
 
   // Optional project assignment — must belong to the same org
   if (body.projectId) {
-    const project = await prisma.project.findFirst({
-      where: { id: body.projectId, orgId: guard.session.orgId },
-    });
-    if (!project) {
+    if (!await canAccessProject(body.projectId, guard.session)) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
   }

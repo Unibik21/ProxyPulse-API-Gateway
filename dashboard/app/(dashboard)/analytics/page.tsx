@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useStore } from "@/lib/store";
 import { useAnalyticsSocket } from "@/lib/useAnalyticsSocket";
 
 export default function AnalyticsPage() {
   const [orgId, setOrgId] = useState<string | null>(null);
+  const { activeProjectId, projects } = useStore();
 
   // Fetch the logged-in admin's orgId from the session
   useEffect(() => {
@@ -14,7 +16,8 @@ export default function AnalyticsPage() {
       .catch(() => {});
   }, []);
 
-  const { snapshot, connected } = useAnalyticsSocket(orgId);
+  const { snapshot, connected } = useAnalyticsSocket(orgId, activeProjectId);
+  const activeProject = projects.find((project) => project.id === activeProjectId);
 
   return (
     <div>
@@ -26,7 +29,7 @@ export default function AnalyticsPage() {
               Live Analytics
             </h1>
             <p className="mt-1 text-[13px] text-text-dim">
-              Real-time traffic, latency, endpoint usage, and cache insights for your organization.
+              Real-time traffic, latency, endpoint usage, and cache insights for {activeProject?.name ?? "this project"}.
             </p>
           </div>
 
@@ -41,7 +44,7 @@ export default function AnalyticsPage() {
                 connected ? "text-signal" : "text-danger"
               }`}
             >
-              {!orgId ? "Authenticating…" : connected ? "Connected" : "Disconnected"}
+              {!orgId || !activeProjectId ? "Selecting project…" : connected ? "Connected" : "Disconnected"}
             </span>
           </div>
         </div>
@@ -57,8 +60,8 @@ export default function AnalyticsPage() {
             Waiting for analytics data
           </h2>
           <p className="mt-1 text-[12px] text-text-dim">
-            {!orgId
-              ? "Loading session…"
+            {!orgId || !activeProjectId
+              ? "Loading project context…"
               : "Waiting for the first snapshot from the analytics service…"}
           </p>
         </section>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireMember } from '@/lib/permissions';
+import { requireMember, canAccessProject } from '@/lib/permissions';
 
 async function getOwnedService(id: string, orgId: string) {
   return prisma.service.findFirst({
@@ -19,6 +19,7 @@ export async function GET(
   const { id } = await params;
   const service = await getOwnedService(id, guard.session.orgId);
   if (!service) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (service.projectId && !await canAccessProject(service.projectId, guard.session)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   return NextResponse.json(service);
 }
@@ -33,6 +34,7 @@ export async function PUT(
   const { id } = await params;
   const existing = await getOwnedService(id, guard.session.orgId);
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (existing.projectId && !await canAccessProject(existing.projectId, guard.session)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const body = await req.json();
 
@@ -70,6 +72,7 @@ export async function DELETE(
   const { id } = await params;
   const existing = await getOwnedService(id, guard.session.orgId);
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (existing.projectId && !await canAccessProject(existing.projectId, guard.session)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   await prisma.service.delete({ where: { id } });
   return NextResponse.json({ success: true });

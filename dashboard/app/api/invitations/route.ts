@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   const guard = await requireAdmin();
   if ('error' in guard) return guard.error;
 
-  const { email, role } = await req.json();
+  const { email, role, projectId } = await req.json();
 
   if (!email) {
     return NextResponse.json({ error: 'Email is required' }, { status: 400 });
@@ -43,6 +43,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: 'Role must be developer' }, { status: 400 }
     );
+  }
+
+  if (projectId) {
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, orgId: guard.session.orgId },
+      select: { id: true },
+    });
+    if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
 
   // Already a member?
@@ -65,6 +73,7 @@ export async function POST(req: NextRequest) {
     role: role ?? 'developer',
     orgId: guard.session.orgId,
     invitedBy: guard.session.adminId,
+    projectId,
   });
 
   const org = await prisma.organization.findUnique({

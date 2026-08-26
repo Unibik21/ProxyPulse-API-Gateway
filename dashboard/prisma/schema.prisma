@@ -33,6 +33,7 @@ model Admin {
   org           Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   createdAt     DateTime       @default(now())
   oauthAccounts OAuthAccount[]
+  projectMemberships ProjectMember[]
 }
 
 // Email invitations to join an organization with a pre-assigned role.
@@ -47,6 +48,8 @@ model Invitation {
   expiresAt  DateTime
   acceptedAt DateTime?
   createdAt  DateTime      @default(now())
+  projectId  String?
+  project    Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([email, orgId])
   @@index([token])
@@ -61,9 +64,20 @@ model Project {
   orgId       String
   org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   services    Service[]
+  members     ProjectMember[]
+  invitations Invitation[]
   createdAt   DateTime     @default(now())
 
   @@unique([name, orgId])
+}
+
+model ProjectMember {
+  projectId String
+  adminId   String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  admin     Admin   @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, adminId])
 }
 
 // Upstream services proxied by the gateway
