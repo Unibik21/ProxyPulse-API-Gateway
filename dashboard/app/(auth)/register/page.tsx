@@ -121,7 +121,7 @@ export default function RegisterPage() {
       {/* Logo / title */}
       <div className="mb-8 text-center">
         <div className="font-display text-[22px] font-semibold tracking-tight text-text">
-          Control Plane
+          Proxy Pulse
         </div>
         <div className="mt-1 font-mono text-[11px] text-text-faint">create your organization</div>
       </div>

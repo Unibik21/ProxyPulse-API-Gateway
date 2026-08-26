@@ -70,6 +70,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // Auth pages / auth API — no session required
+  if (pathname === '/') {
+    return NextResponse.next();
+  }
+
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }

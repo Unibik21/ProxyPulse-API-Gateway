@@ -7,6 +7,7 @@ type RouteConfig = {
   rateLimit: number | null;
   cacheTtl:number;
   orgId: string;
+  projectId: string | null;
 };
 
 let routeTable: Map<string, RouteConfig> = new Map();

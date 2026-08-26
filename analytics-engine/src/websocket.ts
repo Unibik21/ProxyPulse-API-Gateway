@@ -9,8 +9,8 @@ import { computeCacheRecommendations } from './analytics/cacheRecommendations.js
 
 let wss: WebSocketServer;
 
-// Maps each connected socket to the orgId it authenticated with
-const socketOrgId = new WeakMap<WebSocket, string>();
+// Maps each connected socket to the project it subscribed to
+const socketScope = new WeakMap<WebSocket, { orgId: string; projectId: string }>();
 
 export function startWebSocketServer() {
   wss = new WebSocketServer({ port: config.wsPort });
@@ -18,13 +18,14 @@ export function startWebSocketServer() {
 
   wss.on('connection', (socket: WebSocket, req: IncomingMessage) => {
     const orgId = new URL(req.url!, 'ws://localhost').searchParams.get('orgId');
-    if (!orgId) {
-      socket.close(1008, 'Missing orgId');
+    const projectId = new URL(req.url!, 'ws://localhost').searchParams.get('projectId');
+    if (!orgId || !projectId) {
+      socket.close(1008, 'Missing orgId or projectId');
       return;
     }
-    socketOrgId.set(socket, orgId);
-    console.log(`Dashboard client connected (orgId=${orgId})`);
-    socket.on('close', () => console.log(`Dashboard client disconnected (orgId=${orgId})`));
+    socketScope.set(socket, { orgId, projectId });
+    console.log(`Dashboard client connected (orgId=${orgId}, projectId=${projectId})`);
+    socket.on('close', () => console.log(`Dashboard client disconnected (orgId=${orgId}, projectId=${projectId})`));
   });
 
   setInterval(broadcastSnapshot, config.broadcastIntervalMs);
@@ -34,26 +35,27 @@ async function broadcastSnapshot() {
   if (!wss || wss.clients.size === 0) return;
 
   // Collect the unique orgIds that currently have open clients
-  const orgClients = new Map<string, WebSocket[]>();
+  const scopedClients = new Map<string, { orgId: string; projectId: string; clients: WebSocket[] }>();
   for (const client of wss.clients) {
     if (client.readyState !== WebSocket.OPEN) continue;
-    const orgId = socketOrgId.get(client);
-    if (!orgId) continue;
-    const bucket = orgClients.get(orgId) ?? [];
-    bucket.push(client);
-    orgClients.set(orgId, bucket);
+    const scope = socketScope.get(client);
+    if (!scope) continue;
+    const key = `${scope.orgId}:${scope.projectId}`;
+    const bucket = scopedClients.get(key) ?? { ...scope, clients: [] };
+    bucket.clients.push(client);
+    scopedClients.set(key, bucket);
   }
 
-  if (orgClients.size === 0) return;
+  if (scopedClients.size === 0) return;
 
   // Compute stats once per unique orgId, then fan out to that org's clients
   await Promise.all(
-    Array.from(orgClients.entries()).map(async ([orgId, clients]) => {
+    Array.from(scopedClients.values()).map(async ({ orgId, projectId, clients }) => {
       const [latency, ipReputation, mostVisited, cacheRecommendations] = await Promise.all([
-        computeLatencyStats(orgId),
-        computeIpReputation(orgId),
-        computeMostVisited(orgId),
-        computeCacheRecommendations(orgId),
+        computeLatencyStats(orgId, projectId),
+        computeIpReputation(orgId, projectId),
+        computeMostVisited(orgId, projectId),
+        computeCacheRecommendations(orgId, projectId),
       ]);
 
       const payload = JSON.stringify({

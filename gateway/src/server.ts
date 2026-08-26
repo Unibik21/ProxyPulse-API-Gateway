@@ -69,7 +69,8 @@ app.all('/*', async (req, reply) => {
     serviceName: string | null,
     userId: string | null,
     cacheStatus: 'HIT' | 'MISS' | 'N/A',
-    orgId: string | null
+    orgId: string | null,
+    projectId: string | null
   ) => {
     const durationSec =
       Number(process.hrtime.bigint() - startTime) / 1e9;
@@ -102,11 +103,12 @@ app.all('/*', async (req, reply) => {
       ip: req.ip,
       cacheStatus,
       orgId,
+      projectId,
     });
   };
 
   if (!route) {
-    await finish(404, null, null, 'N/A', null);
+    await finish(404, null, null, 'N/A', null, null);
 
     return reply
       .status(404)
@@ -116,7 +118,7 @@ app.all('/*', async (req, reply) => {
   const authResult = await authenticate(req, reply);
 
   if (!authResult) {
-    await finish(401, route.serviceName, null, 'N/A', route?.orgId ?? null);
+    await finish(401, route.serviceName, null, 'N/A', route?.orgId ?? null, route?.projectId ?? null);
     return;
   }
 
@@ -139,7 +141,8 @@ app.all('/*', async (req, reply) => {
       route.serviceName,
       authResult.userId,
       'N/A',
-      route?.orgId ?? null
+      route?.orgId ?? null,
+      route?.projectId ?? null
     );
 
     return reply
@@ -167,7 +170,8 @@ app.all('/*', async (req, reply) => {
         route.serviceName,
         authResult.userId,
         'HIT',
-        route?.orgId ?? null
+        route?.orgId ?? null,
+        route?.projectId ?? null
       );
 
       return reply.send(cached.body);
@@ -218,7 +222,8 @@ app.all('/*', async (req, reply) => {
       route.serviceName,
       authResult.userId,
       route.cacheTtl ? 'MISS' : 'N/A',
-      route?.orgId ?? null
+      route?.orgId ?? null,
+      route?.projectId ?? null
     );
 
     return reply.send(bodyText);
@@ -230,7 +235,8 @@ app.all('/*', async (req, reply) => {
       route.serviceName,
       authResult.userId,
       'N/A',
-      route?.orgId ?? null
+      route?.orgId ?? null,
+      route?.projectId ?? null
     );
 
     return reply

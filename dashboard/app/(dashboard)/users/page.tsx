@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Drawer from "@/components/Drawer";
 import { Field, inputClass, selectClass } from "@/components/Field";
 import StatCard from "@/components/StatCard";
+import { useStore } from "@/lib/store";
 
 type OrgRole = "admin" | "developer";
 
@@ -29,6 +30,7 @@ const ROLE_STYLES: Record<OrgRole, string> = {
 };
 
 export default function UsersPage() {
+  const { projects } = useStore();
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<PendingInvite[]>([]);
   const [myRole, setMyRole] = useState<OrgRole | null>(null);
@@ -39,6 +41,7 @@ export default function UsersPage() {
   const [open, setOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<OrgRole>("developer");
+  const [inviteProjectId, setInviteProjectId] = useState("");
   const [inviting, setInviting] = useState(false);
   const [inviteResult, setInviteResult] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -83,7 +86,7 @@ export default function UsersPage() {
       const res = await fetch("/api/invitations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+        body: JSON.stringify({ email: inviteEmail, role: inviteRole, projectId: inviteProjectId || undefined }),
       });
       const data = await res.json();
 
@@ -99,6 +102,7 @@ export default function UsersPage() {
       );
       if (data.inviteUrl) setInviteUrl(data.inviteUrl);
       setInviteEmail("");
+      setInviteProjectId("");
       load();
     } catch {
       setInviteResult("Network error — please try again");
@@ -273,6 +277,12 @@ export default function UsersPage() {
               onChange={(e) => setInviteRole(e.target.value as OrgRole)}
             >
               <option value="developer">developer — can view analytics, manage services & routes</option>
+            </select>
+          </Field>
+          <Field label="Project access">
+            <select className={selectClass} value={inviteProjectId} onChange={(e) => setInviteProjectId(e.target.value)} required>
+              <option value="">Choose a project</option>
+              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
             </select>
           </Field>
 

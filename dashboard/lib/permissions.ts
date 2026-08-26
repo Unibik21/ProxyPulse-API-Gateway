@@ -12,6 +12,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { prisma } from './prisma';
 import { getSession } from './session';
 import type { OrgRole, SessionPayload } from './auth-utils';
 
@@ -55,4 +56,25 @@ export async function requireMember() {
 /** Admin-only capability (members, invitations, API keys, org settings). */
 export async function requireAdmin() {
   return requireRole('admin');
+}
+
+/** Check that an organization member can access a specific project. */
+export async function canAccessProject(projectId: string, session: SessionPayload) {
+  if (session.role === 'admin') {
+    return Boolean(await prisma.project.findFirst({ where: { id: projectId, orgId: session.orgId }, select: { id: true } }));
+  }
+
+  return Boolean(await prisma.projectMember.findFirst({
+    where: { projectId, adminId: session.adminId, project: { orgId: session.orgId } },
+    select: { projectId: true },
+  }));
+}
+
+export async function requireProjectAccess(projectId: string) {
+  const guard = await requireMember();
+  if ('error' in guard) return guard;
+  if (!await canAccessProject(projectId, guard.session)) {
+    return { error: NextResponse.json({ error: 'Project not found' }, { status: 404 }) };
+  }
+  return guard;
 }

@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireMember } from '@/lib/permissions';
+import { requireMember, canAccessProject } from '@/lib/permissions';
 
 export async function GET() {
   const guard = await requireMember();
   if ('error' in guard) return guard.error;
 
   const routes = await prisma.route.findMany({
-    where:   { service: { orgId: guard.session.orgId } },
+    where: guard.session.role === 'admin'
+      ? { service: { orgId: guard.session.orgId } }
+      : { service: { orgId: guard.session.orgId, project: { members: { some: { adminId: guard.session.adminId } } } } },
     include: { service: true },
     orderBy: { createdAt: 'desc' },
   });
@@ -31,7 +33,7 @@ export async function POST(req: NextRequest) {
   const service = await prisma.service.findFirst({
     where: { id: body.serviceId, orgId: guard.session.orgId },
   });
-  if (!service) {
+  if (!service || (service.projectId && !await canAccessProject(service.projectId, guard.session))) {
     return NextResponse.json({ error: 'Service not found' }, { status: 404 });
   }
 

@@ -13,6 +13,7 @@ export async function GET(){
         ratelimit : r.rateLimit,
         cacheTtl: r.cacheTtl,
         orgId: r.service.orgId,
+        projectId: r.service.projectId,
     }));
 
     return NextResponse.json({routes:config});

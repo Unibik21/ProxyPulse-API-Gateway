@@ -3,20 +3,11 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
 import Drawer from "@/components/Drawer";
-import { Field, inputClass } from "@/components/Field";
+import { Field, inputClass, selectClass } from "@/components/Field";
 import StatCard from "@/components/StatCard";
 
 function emptyDraft(defaultUserId: string) {
   return { label: "", user_id: defaultUserId, is_active: true };
-}
-
-function relativeTime(iso: string | null) {
-  if (!iso) return "never";
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const hrs = Math.floor(diffMs / 3_600_000);
-  if (hrs < 1) return "just now";
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 export default function ApiKeysPage() {
@@ -25,8 +16,6 @@ export default function ApiKeysPage() {
   const [draft, setDraft] = useState(emptyDraft(users[0]?.id ?? ""));
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-
-  const userName = (id: string) => users.find((u) => u.id === id)?.name ?? "— unknown —";
 
   function openCreate() {
     setDraft(emptyDraft(users[0]?.id ?? ""));
@@ -101,6 +90,7 @@ export default function ApiKeysPage() {
           <thead>
             <tr className="border-b border-ink-border text-[11px] uppercase tracking-wider text-text-faint">
               <th className="px-4 py-2.5 font-medium">Label</th>
+              <th className="px-4 py-2.5 font-medium">Owner</th>
               <th className="px-4 py-2.5 font-medium">Key</th>
               <th className="px-4 py-2.5 font-medium">State</th>
               <th className="px-4 py-2.5"></th>
@@ -110,6 +100,7 @@ export default function ApiKeysPage() {
             {apiKeys.map((k) => (
               <tr key={k.id} className="text-[13px] text-text">
                 <td className="px-4 py-2.5 font-medium">{k.label}</td>
+                <td className="px-4 py-2.5 text-text-dim">{k.user_name}</td>
                 <td className="px-4 py-2.5 font-mono text-[12px] text-text-dim">{k.key_preview}</td>
                 <td className="px-4 py-2.5">
                   <button
@@ -137,7 +128,7 @@ export default function ApiKeysPage() {
             ))}
             {apiKeys.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-[13px] text-text-faint">
+                <td colSpan={4} className="px-4 py-10 text-center text-[13px] text-text-faint">
                   No keys issued yet.
                 </td>
               </tr>
@@ -190,7 +181,21 @@ export default function ApiKeysPage() {
               required
             />
           </Field>
-          {/* Owner is automatically the first user (now includes admins) */}
+          <Field label="Owner">
+            <select
+              className={selectClass}
+              value={draft.user_id}
+              onChange={(e) => setDraft({ ...draft, user_id: e.target.value })}
+              required
+            >
+              <option value="" disabled>Select a member</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.name || user.email} ({user.email})
+                </option>
+              ))}
+            </select>
+          </Field>
           <button
             type="submit"
             className="focus-ring mt-2 w-full rounded-md bg-signal py-2.5 text-[13px] font-semibold text-ink hover:bg-signal/90"
