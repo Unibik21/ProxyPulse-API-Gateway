@@ -181,9 +181,8 @@ Check gateway metrics at http://localhost:7000/metrics and Prometheus at http://
 
 [![Languages](https://skillicons.dev/icons?i=typescript,javascript)](https://skillicons.dev)
 
-### Backend & Databases
-
-[![Backend](https://skillicons.dev/icons?i=nodejs,fastify,nextjs,postgres,redis)](https://skillicons.dev)
+### Backend & Database
+[![Backend](https://skillicons.dev/icons?i=nodejs,express,fastify,nestjs,postgres,redis)](https://skillicons.dev)
 
 ### Tools & Infrastructure
 
