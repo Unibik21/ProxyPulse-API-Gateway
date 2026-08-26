@@ -9,10 +9,75 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gateway -d gateway_control_plane"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
   redis:
     image: redis:7-alpine
     ports:
       - "6969:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  dashboard:
+    image: ${DOCKERHUB_USERNAME:-yourdockerhubuser}/api-gateway-dashboard:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-postgresql://gateway:gateway@postgres:5432/gateway_control_plane}
+      AUTH_SECRET: ${AUTH_SECRET:-change-this-secret}
+      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:3000}
+      NEXT_PUBLIC_ANALYTICS_WS_URL: ${NEXT_PUBLIC_ANALYTICS_WS_URL:-ws://localhost:8090}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  gateway:
+    image: ${DOCKERHUB_USERNAME:-yourdockerhubuser}/api-gateway-gateway:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    ports:
+      - "7000:7000"
+    environment:
+      NODE_ENV: production
+      PORT: 7000
+      CONTROL_PLANE_URL: ${CONTROL_PLANE_URL:-http://dashboard:3000}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+    depends_on:
+      dashboard:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  analytics-engine:
+    image: ${DOCKERHUB_USERNAME:-yourdockerhubuser}/api-gateway-analytics:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: analytics-engine/Dockerfile
+    ports:
+      - "8090:8090"
+    environment:
+      NODE_ENV: production
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      WS_PORT: 8090
+    depends_on:
+      redis:
+        condition: service_healthy
 
   prometheus:
     image: prom/prometheus:latest
