@@ -20,18 +20,7 @@ For Docker image building, Docker Hub publishing, and running the published stac
 
 ## Architecture
 
-```text
-Client
-   |
-   v
-Gateway :7000  --->  Config API / Dashboard :3000  --->  PostgreSQL
-   |                         |
-   |                         +-------------------------- Redis
-   |                                                    ^
-   +---- request events ------------------------------ Analytics Engine :8090
-                                                                                     |
-                                                                                     +--> Dashboard WebSocket
-```
+![architecture](final.png)
 
 The data hierarchy is:
 
