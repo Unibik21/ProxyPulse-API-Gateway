@@ -1,4 +1,4 @@
-# API Gateway Control Plane
+# ProxyPulse
 
 An API gateway control plane for configuring services, routes, API keys, project teams, and live traffic analytics from one dashboard.
 
