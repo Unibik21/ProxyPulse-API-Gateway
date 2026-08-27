@@ -177,13 +177,6 @@ Check gateway metrics at http://localhost:7000/metrics and Prometheus at http://
 - Keep SMTP credentials and OAuth secrets in runtime environment configuration.
 - API keys are hashed in storage and the raw key is returned only at creation time.
 
-### Languages
+### Stack
 
-[![Languages](https://skillicons.dev/icons?i=typescript,javascript)](https://skillicons.dev)
-
-### Backend & Database
-[![Backend](https://skillicons.dev/icons?i=nodejs,nextjs,postgres,redis)](https://skillicons.dev)
-
-### Tools & Infrastructure
-
-[![Tools](https://skillicons.dev/icons?i=docker,git,github)](https://skillicons.dev)
+[![Stack](https://skillicons.dev/icons?i=typescript,javascript,nodejs,nextjs,postgres,redis,docker,git,github)](https://skillicons.dev)
