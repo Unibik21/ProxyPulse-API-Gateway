@@ -1,24 +1,32 @@
-FROM node:22-bookworm-slim AS deps
+# Build from repo root (npm workspaces monorepo)
+FROM node:24-alpine AS builder
 WORKDIR /app
-COPY package.json package-lock.json ./
-COPY gateway/package.json ./gateway/package.json
-COPY dashboard/package.json ./dashboard/package.json
-COPY analytics-engine/package.json ./analytics-engine/package.json
-RUN npm ci --workspace gateway --include-workspace-root
 
-FROM node:22-bookworm-slim AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
-COPY gateway ./gateway
+COPY gateway/package.json ./gateway/
+COPY dashboard/package.json ./dashboard/
+COPY analytics-engine/package.json ./analytics-engine/
+RUN npm ci --workspace=gateway
+
+COPY gateway/tsconfig.json ./gateway/
+COPY gateway/src ./gateway/src
 WORKDIR /app/gateway
-RUN npm run typecheck
-RUN npx tsc --outDir dist
+RUN npx tsc --outDir dist --rootDir src
 
-FROM node:22-bookworm-slim AS runner
-WORKDIR /app
+FROM node:24-alpine AS runner
 ENV NODE_ENV=production
-COPY --from=builder /app/gateway/package.json ./package.json
-COPY --from=builder /app/gateway/dist ./dist
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY gateway/package.json ./gateway/
+COPY dashboard/package.json ./dashboard/
+COPY analytics-engine/package.json ./analytics-engine/
+RUN npm ci --omit=dev --workspace=gateway && npm cache clean --force
+
+COPY --from=builder /app/gateway/dist ./gateway/dist
+
+WORKDIR /app/gateway
+USER node
 EXPOSE 7000
+
 CMD ["node", "dist/server.js"]

@@ -13,7 +13,13 @@ type RouteConfig = {
 let routeTable: Map<string, RouteConfig> = new Map();
 
 export async function refreshConfig(controlPlaneUrl: string) {
-  const res = await fetch(`${controlPlaneUrl}/api/config`);
+  let res: Response;
+  try {
+    res = await fetch(`${controlPlaneUrl}/api/config`);
+  } catch (err) {
+    console.error("Failed to refresh config, keeping stale table", err);
+    return;
+  }
   if (!res.ok) {
     console.error("Failed to refresh config, keeping stale table");
     return;
@@ -48,7 +54,13 @@ export function startApiKeyPolling(
 }
 
 export async function refreshApiKeys(controlPlaneUrl: string) {
-  const res = await fetch(`${controlPlaneUrl}/api/api-keys/active`);
+  let res: Response;
+  try {
+    res = await fetch(`${controlPlaneUrl}/api/api-keys/active`);
+  } catch (err) {
+    console.error("Failed to refresh api keys, keeping stale cache", err);
+    return;
+  }
   if (!res.ok) return;
   const { keys } = await res.json() as { keys: { key: string; userId: string; expiresAt: string | null}[] };
   const pipeline = redis.pipeline();

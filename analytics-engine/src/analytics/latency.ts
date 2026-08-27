@@ -30,7 +30,7 @@ export async function computeLatencyStats(orgId: string, projectId: string): Pro
     const samples = raw.map(Number).sort((a:number, b:number) => a - b);
     const avgMs = samples.reduce((sum: number, v: number) => sum + v, 0) / samples.length;
     const p95Index = Math.floor(samples.length * 0.95);
-    const p95Ms = samples[Math.min(p95Index, samples.length - 1)];
+    const p95Ms = samples[Math.min(p95Index, samples.length - 1)] ?? 0;
 
     results.push({
       service,

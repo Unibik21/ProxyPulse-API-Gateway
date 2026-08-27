@@ -4,5 +4,6 @@ global:
 scrape_configs:
   - job_name: 'api-gateway'
     static_configs:
-      - targets: ['host.docker.internal:8080']
-    metric_path: /metrics
+      - targets:
+        - gateway:7000
+    metrics_path: /metrics
