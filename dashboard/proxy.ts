@@ -51,9 +51,9 @@ async function isValidToken(token: string): Promise<boolean> {
   }
 }
 
-// ── Middleware ───────────────────────────────────────────────────────
+// ── Proxy ────────────────────────────────────────────────────────────
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Static assets — always pass through
