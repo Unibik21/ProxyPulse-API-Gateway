@@ -1,22 +1,68 @@
 # ProxyPulse
 
-An API gateway control plane for configuring services, routes, API keys, project teams, and live traffic analytics from one dashboard.
+An API gateway with an actual control plane behind it, instead of a config file you have to SSH in to edit.
 
-The dashboard is the management layer. The gateway receives client traffic, authenticates API keys, applies rate limits and caching, proxies requests to configured services, and sends request events to the analytics engine. PostgreSQL stores control-plane data and Redis provides gateway state, queues, caching, and analytics storage.
+The dashboard is where you configure things — services, routes, API keys, who's on your team. The gateway is a separate process that sits in front of your real traffic, checks API keys, enforces rate limits, serves cached responses, and proxies everything else through to whatever you've registered. Every request it handles gets logged to an analytics engine, which crunches that into latency numbers, popular endpoints, and IP reputation, then pushes it to the dashboard over a WebSocket so you're not refreshing a page to see what's happening.
+
+Postgres holds the control-plane data (orgs, projects, routes, users). Redis handles everything the gateway needs at request time — rate limit counters, cache, the log queue the analytics engine drains.
+
+[![Stack](https://skillicons.dev/icons?i=typescript,javascript,nodejs,nextjs,postgres,redis,docker,git,github)](https://skillicons.dev)
+
+## Contents
+
+- [What it provides](#what-it-provides)
+- [Screenshots](#screenshots)
+- [Architecture](#architecture)
+- [Repository layout](#repository-layout)
+- [Service endpoints](#service-endpoints)
+- [Requirements](#requirements)
+- [Quick start with Docker](#quick-start-with-docker)
+- [Configuration](#configuration)
+- [Local development without Docker](#local-development-without-docker)
+- [Useful commands](#useful-commands)
+- [Security notes](#security-notes)
 
 ## What it provides
 
 - Organization registration, login, email OTP, password reset, and OAuth hooks
-- Projects for separating products or environments
+- Projects, so you're not mixing staging routes in with production ones
 - Service registration with health status and upstream base URLs
-- Route configuration with rate limits and optional response caching
-- Hashed API keys that are shown only once when created
-- Organization invitations with project-specific developer access
-- Project-scoped live analytics for latency, popular endpoints, IP reputation, and cache recommendations
-- Prometheus metrics from the gateway
-- Docker Compose deployment for the complete stack
+- Route configuration — rate limits and optional response caching per route, no redeploy needed to change either
+- API keys that are hashed at rest and shown to you exactly once, at creation
+- Org invitations that give someone access to a specific project, not your whole org
+- Live analytics per project: latency, most-hit endpoints, IP reputation, cache hit-rate recommendations
+- Prometheus metrics from the gateway (`/metrics`)
+- The whole thing comes up with one `docker compose up`
 
-For Docker image building, Docker Hub publishing, and running the published stack elsewhere, see [DOCKER.md](DOCKER.md).
+Docker image building, Docker Hub publishing, and running the published stack elsewhere are covered separately in [DOCKER.md](DOCKER.md).
+
+## Screenshots
+
+Drop your own screenshots into `docs/screenshots/` and swap the filenames below — these are placeholders until you've got the app running and something worth showing.
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/dashboard-overview.png" alt="Dashboard overview" width="100%" />
+      <br /><sub>Dashboard — services and routes for a project</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/live-analytics.png" alt="Live analytics view" width="100%" />
+      <br /><sub>Live analytics, pushed over WebSocket</sub>
+    </td>
+  </tr>
+
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/route-config.jpeg" alt="Route configuration" width="100%" />
+      <br /><sub>Creating Routes</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/api-key-generation.png" alt="API key generation" width="100%" />
+      <br /><sub>A freshly generated key — shown once, then gone</sub>
+    </td>
+  </tr>
+</table>
 
 ## Architecture
 
@@ -33,14 +79,14 @@ Organization
           └── Project analytics
 ```
 
-Admins manage projects and organization members. Developers can access only projects they were invited to and are sent directly to their assigned project dashboard.
+Admins manage projects and org members. Developers only see projects they've been invited to, and land directly in that project's dashboard on login.
 
 ## Repository layout
 
 | Path | Purpose |
 | --- | --- |
 | `dashboard/` | Next.js control plane UI, API routes, Prisma schema, and migrations |
-| `gateway/` | Fastify reverse proxy, API-key authentication, rate limiting, cache, and metrics |
+| `gateway/` | Fastify reverse proxy, API-key auth, rate limiting, cache, and metrics |
 | `analytics-engine/` | Redis-backed event consumer and project-scoped WebSocket analytics |
 | `docker-compose.yml` | Local and container deployment for all services and dependencies |
 | `prometheus.yml` | Prometheus scrape configuration |
@@ -58,13 +104,13 @@ Admins manage projects and organization members. Developers can access only proj
 
 ## Requirements
 
-For local development, install:
+For local development:
 
 - Node.js 22 or newer
 - npm
 - PostgreSQL 16 and Redis 7, or Docker Desktop / Docker Engine with Compose
 
-For production containers, Docker Compose is enough because PostgreSQL and Redis are included in the stack.
+For production containers, Docker Compose is enough — Postgres and Redis are already part of the stack.
 
 ## Quick start with Docker
 
@@ -75,17 +121,17 @@ docker compose up -d --build
 docker compose ps
 ```
 
-Open http://localhost:3000 and create an organization. The dashboard container runs the existing Prisma migrations before starting Next.js.
+Open http://localhost:3000 and create an organization. The dashboard container runs the existing Prisma migrations before Next.js starts, so there's no separate migration step for a fresh stack.
 
-The application images contain code and build output only. Database contents are stored in the local `pgdata` volume and are never pushed to Docker Hub. A new machine pulling the images starts with a fresh database.
+The application images contain code and build output only — database contents live in the local `pgdata` volume and never get pushed to Docker Hub. A new machine pulling the images starts with an empty database.
 
-Stop the stack while keeping local database data:
+Stop the stack, keep the data:
 
 ```bash
 docker compose down
 ```
 
-Reset local testing and delete all database data:
+Wipe everything and start clean:
 
 ```bash
 docker compose down -v --remove-orphans
@@ -114,25 +160,25 @@ GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 ```
 
-For a remote deployment, set `AUTH_BASE_URL` to the public dashboard URL and `NEXT_PUBLIC_ANALYTICS_WS_URL` to the public WebSocket URL. When PostgreSQL and Redis run in Compose, use the service names `postgres` and `redis`, not `localhost`.
+For a remote deployment, point `AUTH_BASE_URL` at the public dashboard URL and `NEXT_PUBLIC_ANALYTICS_WS_URL` at the public WebSocket URL. When Postgres and Redis run in Compose, use the service names `postgres` and `redis` — not `localhost`.
 
-To enable GitHub sign-in, create an OAuth App in GitHub under **Settings → Developer settings → OAuth Apps**. Set the authorization callback URL to:
+To enable GitHub sign-in, create an OAuth App under **Settings → Developer settings → OAuth Apps** in GitHub, with the authorization callback URL set to:
 
 ```text
 http://localhost:3000/api/auth/oauth/github/callback
 ```
 
-For a deployed dashboard, use the same path with the public `AUTH_BASE_URL`, for example `https://dashboard.example.com/api/auth/oauth/github/callback`. Add the OAuth App's client ID and secret as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` environment variables.
+For a deployed dashboard, same path, public `AUTH_BASE_URL` — e.g. `https://dashboard.example.com/api/auth/oauth/github/callback`. Set the resulting client ID and secret as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
 
 ## Local development without Docker
 
-Start PostgreSQL and Redis first, then set a local `DATABASE_URL`. From the repository root, install workspace dependencies:
+Start Postgres and Redis first, then set a local `DATABASE_URL`. From the repo root:
 
 ```bash
 npm install
 ```
 
-Run the database migration and generate Prisma Client from the dashboard directory:
+Run migrations and generate the Prisma client from the dashboard directory:
 
 ```bash
 cd dashboard
@@ -140,24 +186,21 @@ npx prisma migrate deploy
 npx prisma generate
 ```
 
-Start each application in a separate terminal:
+Then start each app in its own terminal:
 
 ```bash
-cd dashboard
-npm run dev
+cd dashboard && npm run dev
 ```
 
 ```bash
-cd gateway
-npm run dev
+cd gateway && npm run dev
 ```
 
 ```bash
-cd analytics-engine
-npm run dev
+cd analytics-engine && npm run dev
 ```
 
-The gateway defaults to port `7000`, the dashboard to `3000`, and the analytics WebSocket to `8090`.
+Gateway defaults to port `7000`, dashboard to `3000`, analytics WebSocket to `8090`.
 
 ## Useful commands
 
@@ -168,16 +211,12 @@ docker compose restart dashboard
 docker compose down
 ```
 
-Check gateway metrics at http://localhost:7000/metrics and Prometheus at http://localhost:9090.
+Gateway metrics: http://localhost:7000/metrics — Prometheus: http://localhost:9090
 
 ## Security notes
 
-- Generate a strong, unique `AUTH_SECRET` for every deployment.
+- Generate a unique `AUTH_SECRET` per deployment, don't reuse one across environments.
 - Put the dashboard and WebSocket behind HTTPS/WSS in production.
-- Replace the development PostgreSQL password before exposing the stack publicly.
-- Keep SMTP credentials and OAuth secrets in runtime environment configuration.
-- API keys are hashed in storage and the raw key is returned only at creation time.
-
-### Stack
-
-[![Stack](https://skillicons.dev/icons?i=typescript,javascript,nodejs,nextjs,postgres,redis,docker,git,github)](https://skillicons.dev)
+- Replace the development Postgres password before exposing the stack publicly.
+- Keep SMTP credentials and OAuth secrets in runtime env config, not in the repo.
+- API keys are hashed at rest — the raw value is shown once at creation and can't be recovered after. Lost key, new key.
