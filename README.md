@@ -108,9 +108,21 @@ SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
 SMTP_FROM=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
 ```
 
 For a remote deployment, set `AUTH_BASE_URL` to the public dashboard URL and `NEXT_PUBLIC_ANALYTICS_WS_URL` to the public WebSocket URL. When PostgreSQL and Redis run in Compose, use the service names `postgres` and `redis`, not `localhost`.
+
+To enable GitHub sign-in, create an OAuth App in GitHub under **Settings → Developer settings → OAuth Apps**. Set the authorization callback URL to:
+
+```text
+http://localhost:3000/api/auth/oauth/github/callback
+```
+
+For a deployed dashboard, use the same path with the public `AUTH_BASE_URL`, for example `https://dashboard.example.com/api/auth/oauth/github/callback`. Add the OAuth App's client ID and secret as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` environment variables.
 
 ## Local development without Docker
 
