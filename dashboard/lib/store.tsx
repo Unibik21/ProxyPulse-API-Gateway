@@ -42,7 +42,7 @@ function toRoute(raw: any): Route {
   return {
     id: raw.id,
     path: raw.path,
-    method: "GET" as HttpMethod, // routes don't have a method column in Prisma — default
+    method: (raw.method ?? "GET") as HttpMethod,
     service_id: raw.serviceId,
     project_id: raw.service?.projectId ?? null,
     service_name: raw.service?.name ?? "",
@@ -307,6 +307,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           path: draft.path,
+          method: draft.method,
           serviceId: draft.service_id,
         }),
       });
@@ -332,6 +333,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     ) => {
       const body: Record<string, unknown> = {};
       if (draft.path !== undefined) body.path = draft.path;
+      if (draft.method !== undefined) body.method = draft.method;
       if (draft.service_id !== undefined) body.serviceId = draft.service_id;
 
       const res = await fetch(`/api/routes/${id}`, {
