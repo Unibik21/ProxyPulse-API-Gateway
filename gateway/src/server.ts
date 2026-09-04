@@ -20,7 +20,7 @@ import {
   registry,
 } from './metrics.js';
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, trustProxy: true, });
 
 app.get('/metrics', async (_req, reply) => {
   reply.header('Content-Type', registry.register.contentType);
