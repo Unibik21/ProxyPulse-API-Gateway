@@ -25,7 +25,7 @@ services:
       retries: 10
 
   dashboard:
-    image: ${DOCKERHUB_USERNAME:-yourdockerhubuser}/api-gateway-dashboard:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_USERNAME:-unibik21}/dashboard:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: dashboard/Dockerfile
@@ -47,7 +47,7 @@ services:
         condition: service_healthy
 
   gateway:
-    image: ${DOCKERHUB_USERNAME:-yourdockerhubuser}/api-gateway-gateway:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_USERNAME:-unibik21}/api-gateway:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: gateway/Dockerfile
@@ -65,7 +65,7 @@ services:
         condition: service_healthy
 
   analytics-engine:
-    image: ${DOCKERHUB_USERNAME:-yourdockerhubuser}/api-gateway-analytics:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_USERNAME:-unibik21}/analytics-engine:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: analytics-engine/Dockerfile
