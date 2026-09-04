@@ -28,6 +28,9 @@ export async function POST(req: NextRequest) {
       { error: 'path and serviceId are required' }, { status: 400 }
     );
   }
+  const method = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(body.method)
+    ? body.method
+    : 'GET';
 
   // Ensure the service belongs to this org
   const service = await prisma.service.findFirst({
@@ -40,6 +43,7 @@ export async function POST(req: NextRequest) {
   const route = await prisma.route.create({
     data: {
       path:      body.path,
+      method,
       service:   { connect: { id: body.serviceId } },
       rateLimit: body.rateLimit ?? null,
       cacheTtl:  body.cacheTtl  ?? null,

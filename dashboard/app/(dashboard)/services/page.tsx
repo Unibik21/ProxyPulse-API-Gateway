@@ -127,7 +127,7 @@ export default function ServicesPage() {
             <input
               className={inputClass}
               value={draft.name}
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
               placeholder="users-service"
               required
             />
@@ -136,7 +136,7 @@ export default function ServicesPage() {
             <input
               className={inputClass + " font-mono"}
               value={draft.base_url}
-              onChange={(e) => setDraft({ ...draft, base_url: e.target.value })}
+              onChange={(e) => setDraft((current) => ({ ...current, base_url: e.target.value }))}
               placeholder="http://localhost:4001"
               required
             />

@@ -100,6 +100,7 @@ model Service {
 model Route {
   id        String   @id @default(uuid())
   path      String   @unique
+  method    String   @default("GET")
   serviceId String
   service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   rateLimit Int?

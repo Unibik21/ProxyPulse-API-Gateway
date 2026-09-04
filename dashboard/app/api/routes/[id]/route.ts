@@ -37,6 +37,14 @@ export async function PUT(
   if (existing.service.projectId && !await canAccessProject(existing.service.projectId, guard.session)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const body = await req.json();
+  const method = body.method === undefined
+    ? undefined
+    : ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(body.method)
+      ? body.method
+      : null;
+  if (method === null) {
+    return NextResponse.json({ error: 'Invalid HTTP method' }, { status: 400 });
+  }
   if (body.serviceId) {
     const svc = await prisma.service.findFirst({
       where: { id: body.serviceId, orgId: guard.session.orgId },
@@ -48,6 +56,7 @@ export async function PUT(
     where: { id },
     data:  {
       ...(body.path      !== undefined && { path:      body.path }),
+      ...(method            !== undefined && { method }),
       ...(body.serviceId !== undefined && { serviceId: body.serviceId }),
       ...(body.rateLimit !== undefined && { rateLimit: body.rateLimit }),
       ...(body.cacheTtl  !== undefined && { cacheTtl:  body.cacheTtl }),
