@@ -62,7 +62,7 @@ app.register(async (app) => {
 app.all('/*', async (req, reply) => {
   const startTime = process.hrtime.bigint();
   const pathOnly = req.url.split('?')[0] as string;
-  const route = getRoute(pathOnly);
+  const route = getRoute(pathOnly, req.method);
 
   const finish = async (
     statusCode: number,
@@ -113,6 +113,14 @@ app.all('/*', async (req, reply) => {
     return reply
       .status(404)
       .send({ error: 'No route configured for this path' });
+  }
+
+  if (!route.active) {
+    await finish(503, route.serviceName, null, 'N/A', route.orgId, route.projectId);
+
+    return reply
+      .status(503)
+      .send({ error: 'Route is currently disabled' });
   }
 
   const authResult = await authenticate(req, reply);

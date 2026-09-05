@@ -8,9 +8,11 @@ export async function GET(){
 
     const config = routes.map((r: (typeof routes)[number]) => ({
         path : r.path,
+        method: r.method,
         serviceName : r.service.name,
         baseUrl : r.service.baseUrl,
-        ratelimit : r.rateLimit,
+        active: r.active,
+        rateLimit : r.rateLimit,
         cacheTtl: r.cacheTtl,
         orgId: r.service.orgId,
         projectId: r.service.projectId,

@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       path:      body.path,
       method,
       service:   { connect: { id: body.serviceId } },
+      active:    body.active ?? true,
       rateLimit: body.rateLimit ?? null,
       cacheTtl:  body.cacheTtl  ?? null,
     },
