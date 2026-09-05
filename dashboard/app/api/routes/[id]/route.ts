@@ -58,6 +58,7 @@ export async function PUT(
       ...(body.path      !== undefined && { path:      body.path }),
       ...(method            !== undefined && { method }),
       ...(body.serviceId !== undefined && { serviceId: body.serviceId }),
+      ...(body.active    !== undefined && { active:    body.active }),
       ...(body.rateLimit !== undefined && { rateLimit: body.rateLimit }),
       ...(body.cacheTtl  !== undefined && { cacheTtl:  body.cacheTtl }),
     },

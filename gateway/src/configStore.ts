@@ -2,8 +2,10 @@ import { redis } from './redis.js'
 
 type RouteConfig = {
   path: string;
+  method: string;
   serviceName: string;
   baseUrl: string;
+  active: boolean;
   rateLimit: number | null;
   cacheTtl:number;
   orgId: string;
@@ -26,13 +28,14 @@ export async function refreshConfig(controlPlaneUrl: string) {
   }
   const { routes } = (await res.json()) as { routes: RouteConfig[] };
   const newTable = new Map<string, RouteConfig>();
-  for (const r of routes) newTable.set(r.path, r);
+  for (const r of routes) newTable.set(r.path, { ...r, active: r.active ?? true });
   routeTable = newTable;
   console.log(`Config refreshed : ${routeTable.size} routes loaded`);
 }
 
-export function getRoute(path: string): RouteConfig | undefined {
-  return routeTable.get(path);
+export function getRoute(path: string, method: string): RouteConfig | undefined {
+  const route = routeTable.get(path);
+  return route?.method === method ? route : undefined;
 }
 
 export function startConfigPolling(

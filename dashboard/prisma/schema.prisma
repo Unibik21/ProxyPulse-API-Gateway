@@ -96,13 +96,14 @@ model Service {
   @@unique([name, orgId])
 }
 
-// Gateway routes — paths must be globally unique (gateway matches on path alone)
+// Gateway routes — paths must be globally unique; method controls the allowed verb.
 model Route {
   id        String   @id @default(uuid())
   path      String   @unique
   method    String   @default("GET")
   serviceId String
   service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  active    Boolean  @default(true)
   rateLimit Int?
   cacheTtl  Int?
   createdAt DateTime @default(now())

@@ -12,7 +12,14 @@ import StatCard from "@/components/StatCard";
 const METHODS: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 
 function emptyDraft(defaultServiceId: string) {
-  return { path: "", method: "GET" as HttpMethod, service_id: defaultServiceId, is_active: true };
+  return {
+    path: "",
+    method: "GET" as HttpMethod,
+    service_id: defaultServiceId,
+    rate_limit: null as number | null,
+    cache_ttl: null as number | null,
+    is_active: true,
+  };
 }
 
 export default function RoutesPage() {
@@ -31,7 +38,14 @@ export default function RoutesPage() {
 
   function openEdit(r: Route) {
     setEditingId(r.id);
-    setDraft({ path: r.path, method: r.method, service_id: r.service_id, is_active: r.is_active });
+    setDraft({
+      path: r.path,
+      method: r.method,
+      service_id: r.service_id,
+      rate_limit: r.rate_limit,
+      cache_ttl: r.cache_ttl,
+      is_active: r.is_active,
+    });
     setOpen(true);
   }
 
@@ -86,6 +100,8 @@ export default function RoutesPage() {
               <th className="px-4 py-2.5 font-medium">Method</th>
               <th className="px-4 py-2.5 font-medium">Path</th>
               <th className="px-4 py-2.5 font-medium">Service</th>
+              <th className="px-4 py-2.5 font-medium">Rate limit</th>
+              <th className="px-4 py-2.5 font-medium">Cache TTL</th>
               <th className="px-4 py-2.5 font-medium">State</th>
               <th className="px-4 py-2.5"></th>
             </tr>
@@ -100,6 +116,12 @@ export default function RoutesPage() {
                   <PathChips path={r.path} />
                 </td>
                 <td className="px-4 py-2.5 text-text-dim">{serviceName(r.service_id)}</td>
+                <td className="px-4 py-2.5 text-text-dim">
+                  {r.rate_limit === null ? "Default (100/min)" : `${r.rate_limit}/min`}
+                </td>
+                <td className="px-4 py-2.5 text-text-dim">
+                  {r.cache_ttl === null ? "Off" : `${r.cache_ttl}s`}
+                </td>
                 <td className="px-4 py-2.5">
                   <button
                     onClick={() => updateRoute(r.id, { is_active: !r.is_active })}
@@ -132,7 +154,7 @@ export default function RoutesPage() {
             ))}
             {routes.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-[13px] text-text-faint">
+                <td colSpan={7} className="px-4 py-10 text-center text-[13px] text-text-faint">
                   No routes yet.
                 </td>
               </tr>
@@ -178,6 +200,28 @@ export default function RoutesPage() {
                 </option>
               ))}
             </select>
+          </Field>
+          <Field label="Rate limit (requests per minute)">
+            <input
+              className={inputClass}
+              type="number"
+              min="1"
+              step="1"
+              value={draft.rate_limit ?? ""}
+              onChange={(e) => setDraft({ ...draft, rate_limit: e.target.value ? Number(e.target.value) : null })}
+              placeholder="Default: 100/min"
+            />
+          </Field>
+          <Field label="Cache TTL (seconds)">
+            <input
+              className={inputClass}
+              type="number"
+              min="1"
+              step="1"
+              value={draft.cache_ttl ?? ""}
+              onChange={(e) => setDraft({ ...draft, cache_ttl: e.target.value ? Number(e.target.value) : null })}
+              placeholder="Disabled"
+            />
           </Field>
           <Field label="State">
             <label className="flex items-center gap-2 text-[13px] text-text">

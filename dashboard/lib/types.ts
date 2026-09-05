@@ -31,8 +31,9 @@ export interface Route {
   service_id: string;
   project_id: string | null;
   service_name: string;
-  rate_limit: number | null;
   is_active: boolean;
+  rate_limit: number | null;
+  cache_ttl: number | null;
   created_at: string;
 }
 

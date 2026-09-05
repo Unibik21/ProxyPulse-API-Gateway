@@ -22,7 +22,7 @@ export async function setCachedResponse(
 ){
     if(req.method!=='GET')return;
     if(status>=400)return;
-    await redis.set(cacheKey(req),JSON.stringify({status,header,body}),'EX',ttlSeconds);
+    await redis.set(cacheKey(req),JSON.stringify({status,headers: header,body}),'EX',ttlSeconds);
 }
 
 export async function purgeRouteCache(path:string){

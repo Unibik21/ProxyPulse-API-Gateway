@@ -46,8 +46,9 @@ function toRoute(raw: any): Route {
     service_id: raw.serviceId,
     project_id: raw.service?.projectId ?? null,
     service_name: raw.service?.name ?? "",
+    is_active: raw.active ?? true,
     rate_limit: raw.rateLimit,
-    is_active: true, // no active flag in Prisma schema — routes are always active if they exist
+    cache_ttl: raw.cacheTtl,
     created_at: raw.createdAt,
   };
 }
@@ -101,8 +102,8 @@ interface Store {
   deleteService: (id: string) => Promise<void>;
 
   // routes
-  addRoute: (draft: { path: string; method: HttpMethod; service_id: string; is_active: boolean }) => Promise<void>;
-  updateRoute: (id: string, draft: Partial<{ path: string; method: HttpMethod; service_id: string; is_active: boolean }>) => Promise<void>;
+  addRoute: (draft: { path: string; method: HttpMethod; service_id: string; rate_limit: number | null; cache_ttl: number | null; is_active: boolean }) => Promise<void>;
+  updateRoute: (id: string, draft: Partial<{ path: string; method: HttpMethod; service_id: string; rate_limit: number | null; cache_ttl: number | null; is_active: boolean }>) => Promise<void>;
   deleteRoute: (id: string) => Promise<void>;
 
   // users
@@ -301,7 +302,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   /* ── routes ─────────────────────────────────────────────────────── */
 
   const addRoute = useCallback(
-    async (draft: { path: string; method: HttpMethod; service_id: string; is_active: boolean }) => {
+    async (draft: { path: string; method: HttpMethod; service_id: string; rate_limit: number | null; cache_ttl: number | null; is_active: boolean }) => {
       const res = await fetch("/api/routes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -309,6 +310,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           path: draft.path,
           method: draft.method,
           serviceId: draft.service_id,
+          active: draft.is_active,
+          rateLimit: draft.rate_limit,
+          cacheTtl: draft.cache_ttl,
         }),
       });
       if (!res.ok) throw new Error("Failed to create route");
@@ -329,12 +333,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateRoute = useCallback(
     async (
       id: string,
-      draft: Partial<{ path: string; method: HttpMethod; service_id: string; is_active: boolean }>
+      draft: Partial<{ path: string; method: HttpMethod; service_id: string; rate_limit: number | null; cache_ttl: number | null; is_active: boolean }>
     ) => {
       const body: Record<string, unknown> = {};
       if (draft.path !== undefined) body.path = draft.path;
       if (draft.method !== undefined) body.method = draft.method;
       if (draft.service_id !== undefined) body.serviceId = draft.service_id;
+      if (draft.is_active !== undefined) body.active = draft.is_active;
+      if (draft.rate_limit !== undefined) body.rateLimit = draft.rate_limit;
+      if (draft.cache_ttl !== undefined) body.cacheTtl = draft.cache_ttl;
 
       const res = await fetch(`/api/routes/${id}`, {
         method: "PUT",
