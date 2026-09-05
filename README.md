@@ -37,9 +37,6 @@ Postgres holds the control-plane data (orgs, projects, routes, users). Redis han
 Docker image building, Docker Hub publishing, and running the published stack elsewhere are covered separately in [DOCKER.md](DOCKER.md).
 
 ## Screenshots
-
-Drop your own screenshots into `docs/screenshots/` and swap the filenames below — these are placeholders until you've got the app running and something worth showing.
-
 <table>
   <tr>
     <td width="50%">
