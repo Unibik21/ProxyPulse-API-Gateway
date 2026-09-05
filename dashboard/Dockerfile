@@ -14,7 +14,7 @@ WORKDIR /app/dashboard
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PUBLIC_ANALYTICS_WS_URL=ws://localhost:8090
 ENV DATABASE_URL=postgresql://gateway:gateway@postgres:5432/gateway_control_plane
-RUN npx prisma generate && npm run build
+RUN npx prisma generate && npx prisma migrate deploy && npm run build
 
 FROM node:24-alpine AS runner
 ENV NODE_ENV=production
